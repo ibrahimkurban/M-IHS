@@ -1,4 +1,4 @@
-function [x, k] = AA_b_solver_iko(A, b, par, tol, maxit, x1)
+function [x, k, flopc] = AA_b_solver_iko(A, b, par, tol, maxit, x1)
 %%AA_b solver solves the linear system (A'A + par*eye)x = b by using GKL-2
 %bidiagonalization procedure which generates upper bidiagonal matrix 
 %without reorthogonalization and also without any additional cost, it finds
@@ -78,4 +78,10 @@ while(k == 1 || (k < maxit && tol < tol_prev_it))
     tol_prev_it = abs(phi*rhobar)/theta1;
 end
 
+%% flop count refer to lightspeed malab packet
+if(nargout > 2)
+    f_iter = 4*n*d + 4*n + 9*d + 50;
+    f_init = 2*n*d + 4*d + 2*n + 35;
+    flopc  = f_iter*[1:i]+f_init;
+end
 end

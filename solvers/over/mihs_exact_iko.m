@@ -1,9 +1,10 @@
-function [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
+function [x,xx,time,flopc] = mihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %%
 %
-% [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,tol,maxit,params)
+% [x, xx, time, flopc] = mihs_exact_iko(A,b,lam,m,tol,maxit,params)
 %
 %   params.SA sketch amtrix
+%   params.k0 effective rank
 %
 %           params.submaxit sets number max iteration for subsolver
 %           params.subtol   sets tolerance for subsolver (relative residual)
@@ -11,68 +12,64 @@ function [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,par
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
-    noparam         = true;
 else
     if(~isfield(params, 'SA'))
         [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
     end
-    noparam     = false;
-end
-
-%% inexact tolerance 
-    if(~isfield(params, 'subtol'))
-        params.subtol = 1e-2;
-    end
-    if(~isfield(params, 'submaxit'))
-        params.maxit = 25;
-    end
-
-   
-%% data
-[n,d]   = size(A);
-xx      = zeros(d, maxit);
-flopc   = zeros(maxit,1);
-in_iter = zeros(maxit,1);
-
-%% effective rank
-if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = eff_rank_solver(SA, SA, lam);
 end
 tic;
+%% QR decomposition
+[n,d]   = size(A);
+if(lam == 0)
+   [~, R] = qr(SA,0);
+   f_qr   = ceil(2*m*d^2-2/3*d^3);
+else
+   [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
+   f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
+end
+
 %% momentum weights
-r       = k0/m;
+r       = params.k0/m;
+
+%%robust ones
+% Ksup    = 1/(1-sqrt(r))^2 + 0.28;
+% Kinf    = 1/(1+sqrt(r))^2 - 0.030;
+% % 
+% alpha   = 4/( sqrt(Ksup) + sqrt(Kinf) )^2;
+% beta    = (  ( sqrt(Ksup) - sqrt(Kinf) )/( sqrt(Ksup) + sqrt(Kinf) )  )^2;
+%%theoric ones
 alpha   = (1-r)^2;
 beta    = r;
 
+%% data
+xx      = zeros(d, maxit);
+flopc   = zeros(maxit,1);
+
 %% iteration
 xp      = x1*0;
-dx      = xp;
 x       = x1;
 k       = 0;
 while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
     k       = k+1;
     grad    = A'*(b-A*x) - lam*x;
-    
-    %solve subproblem
-    [dx, in_iter(k), f_dx]      = AA_b_solver(SA,grad, lam, cgtol, cgmaxit, dx);
-    xn                          = x + alpha*dx + beta*(x - xp);
-    
+    xn      = x + alpha*(R\(R'\grad)) + beta*(x - xp);
+        
     %update
     xp      = x;
     x       = xn;
     xx(:,k) = x; 
-    flopc(k)= f_dx + 4*n*d + n + 7*d;
+    flopc(k)= 2*(d^2) + 4*n*d + n + 21*d;
 end
 xx      = xx(:,1:k);
 flopc   = flopc(1:k);
-in_iter = in_iter(1:k);
+
 
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
 
 % flop count
-flopc   = cumsum(flopc) + f_rp + f_tr;  
+flopc   = cumsum(flopc) + f_rp + f_qr;  
 
 end
 

@@ -1,35 +1,43 @@
-function [x,xx,time] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
+function [x,xx,time, flopc] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
 %%BLENDENPIK_IKO imlementation of the algorithm in paper:
 % Avron, Haim, Petar Maymounkov, and Sivan Toledo. 
 % "Blendenpik: Supercharging LAPACK's least-squares solver." 
 % SIAM Journal on Scientific Computing 32.3 (2010): 1217-1236.
 %
-% [x,xx,time] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
+% [x,xx,time, flopc] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 % params.SA = sketch matrix otherwise it is ROS with DCT
 %
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time] = generate_SA_blendenpik(A,m, true);
+    [SA, rp_time, f_rp] = generate_SA_blendenpik(A,m, true);
 else
     if(~isfield(params, 'SA'))
-        [SA, rp_time] = generate_SA_blendenpik(A,m, true);
+        [SA, rp_time, f_rp] = generate_SA_blendenpik(A,m, true);
     end
 end
 tic
 
 %% QR decomposition
+[~,d]   = size(A);
 if(lam == 0)
    [~, R] = qr(SA,0);
+   f_qr   = ceil(2*m*d^2-2/3*d^3);
 else
    [~, R] = qr([SA;sqrt(lam)*eye(d)],0);
+   f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
 end
 
 %% LSQR Solver
-[x, ~, xx] = lsqr_pre_iko([A; sqrt(lam)],[b; zeros(d)],R,x1,tol,maxit);
-time = toc+rp_time;
+[x, ~, xx, f_lsqr] = lsqr_pre_iko([A; sqrt(lam)],[b; zeros(d)],R,tol,maxit);
 
+%% complexity (flop count refer to lightspeed malab packet)
+%timing
+time    = toc+rp_time;
+
+% flop count
+flopc   = f_rp + f_lsqr + f_qr; 
 
 end
 
@@ -61,12 +69,12 @@ HDA     = dct(DA,nt);                                      % DCT transform
 idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
 SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
 time    = toc;
-
-%% flops
-if(nargout>2)
-    flopc = 0;
-    flopc = flopc + flops_randnorm(n);
-    flopc = flopc + flops_fft(DA)/4;
-    flopc = flopc + flops_sum(SA)/N;
+%% flop count refer to lightspeed malab packet
+if(nargout > 2)
+    f_DA    = 18*n + n*d;
+    f_HDA   = ceil(nt*d*log2(7*m));
+    f_SA    = 18*nt + m*d; 
+    
+    flopc   = f_DA + f_HDA + f_SA;
 end
 end

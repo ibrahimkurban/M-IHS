@@ -1,4 +1,4 @@
-function [x, error, iter, flag] = cg_templates(A,b,x,M,tol,maxit)
+function [x, iter, flopc] = cg_templates(A,b,x,M,tol,maxit,n2)
 
 %  -- Iterative template routine --
 %     Univ. of Tennessee and Oak Ridge National Laboratory
@@ -17,7 +17,7 @@ function [x, error, iter, flag] = cg_templates(A,b,x,M,tol,maxit)
 % input   A        REAL symmetric positive definite matrix
 %         x        REAL initial guess vector
 %         b        REAL right hand side vector
-%         M        REAL preconditioner matrix
+%         M        REAL preconditioner matrix, [] if not used
 %         max_it   INTEGER maximum number of iterations
 %         tol      REAL error tolerance
 %
@@ -26,10 +26,13 @@ function [x, error, iter, flag] = cg_templates(A,b,x,M,tol,maxit)
 %         iter     INTEGER number of iterations performed
 %         flag     INTEGER: 0 = solution found to tolerance
 %                           1 = no convergence given max_it
-
-flag = 0;                                 % initialization
-iter = 0;
-bnrm2 = norm( b );
+%
+% if A'A =b is tried to solve then n2 is the  size(A,1) otherwise ignore it
+%
+flag    = 0;                                 % initialization
+pre     = ~isempty(M);
+iter    = 0;
+bnrm2   = norm( b );
 if  ( bnrm2 == 0.0 ), bnrm2 = 1.0; end
 
 
@@ -38,8 +41,11 @@ error = norm( r ) / bnrm2;
 if ( error < tol ) return, end
 
 for iter = 1:maxit                       % begin iteration
-    
-    z  = M \ r;
+    if(pre)
+        z  = M \ r;
+    else
+        z = r;
+    end
     rho = (r'*z);
     
     if ( iter > 1 )                      % direction vector
@@ -63,4 +69,23 @@ end
 
 if ( error > tol ) flag = 1; end         % no convergence
 
+%% flop count refer to lightspeed malab packet
+if(nargout > 2)
+    n = size(b);
+    if(pre)
+        f_iter = 3*n^2 + 17*n + 16;
+    else
+        f_iter = 2*n^2 + 10*n + 16;
+        if(exist('n2', 'var'))
+            f_iter = 4*n*n2 + + 12*n + 16;
+        end
+    end
+    f_init    = 2*n^2 + 8*n + 14;
+    if(exist('n2', 'var'))
+        f_init = 4*n*n2 + + 10*n + 16;
+    end
+    flopc   = [1:i]*f_iter + f_init;
+end
+
+end
 % END cg.m
