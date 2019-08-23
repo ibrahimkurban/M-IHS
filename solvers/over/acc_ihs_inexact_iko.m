@@ -11,7 +11,7 @@ function [xx, time, flopc] = acc_ihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
 % there are some mistakes in the algorithm presented in the paper
 % this corrected version, I have tried to use same notation
 %
-% in this version we use QR decompositon to oslve small systems
+% in this version we use AAb inexact solver proposed by IKO which is not suggested in the paper
 %
 %           params.submaxit sets number max iteration for subsolver (25)
 %           params.subtol   sets tolerance for subsolver (relative
