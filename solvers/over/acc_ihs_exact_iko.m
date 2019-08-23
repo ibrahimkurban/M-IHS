@@ -1,13 +1,18 @@
-function [x,xx,time,flopc] = mihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
-%%
+function [xx, time, flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
+%%ACC_IHS_IKO implementation of the paper in
 %
-% [x, xx, time, flopc] = mihs_exact_iko(A,b,lam,m,tol,maxit,params)
+% Wang, Jialei, et al. 
+% "Sketching meets random projection in the dual: 
+% A provable recovery algorithm for big and high-dimensional data."
+% Electronic Journal of Statistics 11.2 (2017): 4896-4944.
 %
-%   params.SA sketch amtrix
-%   params.k0 effective rank
+% [xx, time, flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
-%           params.submaxit sets number max iteration for subsolver
-%           params.subtol   sets tolerance for subsolver (relative residual)
+% there are some mistakes in the algorithm presented in the paper
+% this corrected version, I have tried to use same notation
+%
+% in this version we use QR decompositon to oslve small systems
+%
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
@@ -18,8 +23,12 @@ else
     end
 end
 tic;
-%% QR decomposition
+
+%% data
 [n,d]   = size(A);
+xx      = zeros(d, maxit);
+
+%% QR decomposition
 if(lam == 0)
    [~, R] = qr(SA,0);
    f_qr   = ceil(2*m*d^2-2/3*d^3);
@@ -28,46 +37,39 @@ else
    f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
 end
 
-%% momentum weights
-r       = params.k0/m;
-
-%%robust ones
-% Ksup    = 1/(1-sqrt(r))^2 + 0.28;
-% Kinf    = 1/(1+sqrt(r))^2 - 0.030;
-% % 
-% alpha   = 4/( sqrt(Ksup) + sqrt(Kinf) )^2;
-% beta    = (  ( sqrt(Ksup) - sqrt(Kinf) )/( sqrt(Ksup) + sqrt(Kinf) )  )^2;
-%%theoric ones
-alpha   = (1-r)^2;
-beta    = r;
-
-%% data
-xx      = zeros(d, maxit);
-
-%% iteration
-xp      = x1*0;
-x       = x1;
+%%
+w       = x1;
+wp      = x1*0;
+r       = - (A'*b);
+u       = R\(R'\r);
+p       = -u;
+v       = A'*(A*p)+lam*p;
 k       = 0;
-while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
+while(k < 2 || (norm(w - wp)/norm(wp) >= tol && k < maxit))
     k       = k+1;
-    grad    = A'*(b-A*x) - lam*x;
-    xn      = x + alpha*(R\(R'\grad)) + beta*(x - xp);
-        
-    %update
-    xp      = x;
-    x       = xn;
-    xx(:,k) = x; 
+    wp      = w;
+    a       = (r'*u)/(p'*v);
+    w       = w + a*p;
+    rp      = r;
+    r       = r + a*v;
+    beta    = (r'*u)/(rp'*rp);
+    u       = R\(R'\r);
+    p       = -u + beta*p;
+    v       = A'*(A*p) + lam*p;
+    
+    xx(:,k) = w;
 end
 xx      = xx(:,1:k);
-
 
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
 
 % flop count
-f_iter = 2*(d^2) + 4*n*d + n + 21*d;
-flopc   = [1:k]*f_iter + f_rp + f_qr;  
+f_init = 2*d^2 + 6*n*d + 17*d;
+f_iter = 2*(d^2) + 4*n*d + 16 + 31*d;
+flopc  = [1:k]*f_iter + f_init + f_rp + f_qr;   
+
 
 end
 

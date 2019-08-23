@@ -1,24 +1,21 @@
-function [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
-%%
+function [xx, time, flopc] = acc_ihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
+%%ACC_IHS_IKO implementation of the paper in
 %
-% [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,tol,maxit,params)
+% Wang, Jialei, et al. 
+% "Sketching meets random projection in the dual: 
+% A provable recovery algorithm for big and high-dimensional data."
+% Electronic Journal of Statistics 11.2 (2017): 4896-4944.
 %
-%   params.SA sketch amtrix
+% [xx, time, flopc] = acc_ihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
+%
+% there are some mistakes in the algorithm presented in the paper
+% this corrected version, I have tried to use same notation
+%
+% in this version we use QR decompositon to oslve small systems
 %
 %           params.submaxit sets number max iteration for subsolver (25)
 %           params.subtol   sets tolerance for subsolver (relative
 %           residual)(1e-2)
-
-%% generate sketch matrix or not
-if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
-    noparam         = true;
-else
-    if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
-    end
-    noparam     = false;
-end
 
 %% inexact tolerance 
     if(~isfield(params, 'subtol'))
@@ -27,53 +24,55 @@ end
     if(~isfield(params, 'submaxit'))
         params.maxit = 25;
     end
+    
+%% generate sketch matrix or not
+if(~exist('params', 'var'))
+    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
+else
+    if(~isfield(params, 'SA'))
+        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    end
+end
+tic;
 
-   
 %% data
 [n,d]   = size(A);
 xx      = zeros(d, maxit);
-flopc   = zeros(maxit,1);
-in_iter = zeros(maxit,1);
-
-%% effective rank
-if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = eff_rank_solver(SA, SA, lam);
-end
-tic;
-%% momentum weights
-r       = k0/m;
-alpha   = (1-r)^2;
-beta    = r;
-
-%% iteration
-xp      = x1*0;
-dx      = xp;
-x       = x1;
+f_iterr = zeros(1,maxit);
+%%
+w       = x1;
+wp      = x1*0;
+r       = - (A'*b);
+[u,~,f_idx]= AA_b_solver(SA,r, lam, cgtol, cgmaxit, dx);
+p       = -u;
+v       = A'*(A*p)+lam*p;
 k       = 0;
-while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
+while(k < 2 || (norm(w - wp)/norm(wp) >= tol && k < maxit))
     k       = k+1;
-    grad    = A'*(b-A*x) - lam*x;
+    wp      = w;
+    a       = (r'*u)/(p'*v);
+    w       = w + a*p;
+    rp      = r;
+    r       = r + a*v;
+    beta    = (r'*u)/(rp'*rp);
+    [u,~,f_dx]= AA_b_solver(SA,r, lam, cgtol, cgmaxit, dx);
+    p       = -u + beta*p;
+    v       = A'*(A*p) + lam*p;
     
-    %solve subproblem
-    [dx, in_iter(k), f_dx]      = AA_b_solver(SA,grad, lam, cgtol, cgmaxit, dx);
-    xn                          = x + alpha*dx + beta*(x - xp);
-    
-    %update
-    xp      = x;
-    x       = xn;
-    xx(:,k) = x; 
-    flopc(k)= f_dx + 4*n*d + n + 7*d;
+    xx(:,k) = w;
+    f_iterr(k) = f_dx;
 end
 xx      = xx(:,1:k);
-flopc   = flopc(1:k);
-in_iter = in_iter(1:k);
 
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
 
 % flop count
-flopc   = cumsum(flopc) + f_rp + f_tr;  
+f_init = 2*d^2 + 6*n*d + 17*d;
+f_iter = 2*(d^2) + 4*n*d + 16 + 31*d;
+flopc  = [1:k]*f_iter + f_init + f_rp + f_qr + f_iterr(1:k) + f_idx;   
+
 
 end
 
