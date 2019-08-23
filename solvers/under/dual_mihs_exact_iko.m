@@ -1,29 +1,30 @@
-function [x,xx,time,flopc] = mihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
-%%MIHS_EXACT_IKO solver for over-determined systems
+function [x,xx,time,flopc] = dual_mihs_exact_iko(A,b,lam,m,tol,x1,maxit,params)
+%%DUAL_MIHS solver for underdetermined systems
 %
-% [x, xx, time, flopc] = mihs_exact_iko(A,b,lam,m,tol,maxit,params)
+% [x,xx,time,flopc] = dual_mihs_exact_iko(A,b,lam,m,tol,x1,maxit,params)
 %
-%   params.SA sketch amtrix
+%   params.SAt sketch amtrix
 %   params.k0 effective rank (reqirement if not known run eff_rank_solver)
 %
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
+    [SAt, rp_time,f_rp]   = generate_SA_mihs(A',m, false);
 else
-    if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    if(~isfield(params, 'SAt'))
+        [SAt, rp_time,f_rp] = generate_SA_mihs(A',m, false);
     end
 end
 tic;
+
 %% QR decomposition
 [n,d]   = size(A);
 if(lam == 0)
-   [~, R] = qr(SA,0);
-   f_qr   = ceil(2*m*d^2-2/3*d^3);
+   [~, R] = qr(SAt,0);
+   f_qr   = ceil(2*m*n^2-2/3*n^3);
 else
-   [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
-   f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
+   [~, R] = qr([SAt;sqrt(lam)*speye(n)],0);
+   f_qr   = ceil(2*(m+n)*n^2-2/3*n^3);
 end
 
 %% momentum weights
@@ -41,35 +42,35 @@ beta    = r;
 
 %% data
 xx      = zeros(d, maxit);
-
-%% iteration
-xp      = x1*0;
-x       = x1;
-k       = 0;
-while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
-    k       = k+1;
-    grad    = A'*(b-A*x) - lam*x;
-    xn      = x + alpha*(R\(R'\grad)) + beta*(x - xp);
-        
+nu      = zeros(n,1);
+nup     = zeros(size(nu));
+k = 0;
+while(k < 2 || (norm(nu - nup)/norm(nup) >= tol && k < maxit))
+    k           = k+1;
+    %grad
+    grad        = b - A*(A'*nu) - lam*nu;
+    
+    %solve small system
+    dnu         = R\(R'\grad);
+    nun         = nu - alpha*dnu + beta*(nu - nup);
+    
     %update
-    xp      = x;
-    x       = xn;
-    xx(:,k) = x; 
-end
-xx      = xx(:,1:k);
-
-
+    nup         = nu;
+    nu          = nun;
+    
+    xx(:,k)     = A'*nu;
+end     
+xx  = xx(:,1:k);
+x   = xx(:,end);
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
 
 % flop count
-f_iter = 2*(d^2) + 4*n*d + n + 21*d;
+f_iter = 2*(n^2) + 4*n*d + 22*n;
 flopc   = [1:k]*f_iter + f_rp + f_qr;  
 
 end
-
-
 
 
 

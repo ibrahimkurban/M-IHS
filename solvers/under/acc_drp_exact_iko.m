@@ -1,4 +1,4 @@
-function [x,xx,time,flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
+function [x,xx,time,flopc] = acc_drp_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %%ACC_IHS_IKO implementation of the paper in
 %
 % Wang, Jialei, et al. 
@@ -12,70 +12,68 @@ function [x,xx,time,flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 % this corrected version, I have tried to use same notation
 %
 % in this version we use QR decompositon to oslve small systems
-% params.SA is sketch matrix
-%
+% params.SAt = sketch matrix
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
+    [SAt, rp_time,f_rp]   = generate_SA_mihs(A',m, false);
 else
     if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+        [SAt, rp_time,f_rp] = generate_SA_mihs(A',m, false);
     end
 end
 tic;
 
-%% data
-[n,d]   = size(A);
-xx      = zeros(d, maxit);
-
 %% QR decomposition
+[n,d]   = size(A);
 if(lam == 0)
-   [~, R] = qr(SA,0);
-   f_qr   = ceil(2*m*d^2-2/3*d^3);
+   [~, R] = qr(SAt,0);
+   f_qr   = ceil(2*m*n^2-2/3*n^3);
 else
-   [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
-   f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
+   [~, R] = qr([SAt;sqrt(lam)*speye(n)],0);
+   f_qr   = ceil(2*(m+n)*n^2-2/3*n^3);
 end
 
 %%
-w       = x1;
-wp      = x1*0;
-r       = - (A'*b);
-u       = R\(R'\r);
+xx      = zeros(d,maxit);
+alpha   = zeros(n,1);
+r       = (-lam)*b;
+z       = SAt*(SR\(SR.'\r));
+u       = r - SAt'*z;
 p       = -u;
-v       = A'*(A*p)+lam*p;
-k       = 0;
-while(k < 2 || (norm(w - wp)/norm(wp) >= tol && k < maxit))
+v       = A*(A'*p) + lam*p;
+
+k = 0;
+while(k < 2 || (norm(dffxp)/norm(xp) >= tol && k < maxit))
     k       = k+1;
-    wp      = w;
     a       = (r'*u)/(p'*v);
-    w       = w + a*p;
+    dffxp   = a*p; %for tolerance
+    xp      = alpha;
+    alpha   = alpha + a*p;
     rp      = r;
     r       = r + a*v;
+    z       = SAt*(SR\(SR'\r));
     beta    = (r'*u)/(rp'*rp);
-    u       = R\(R'\r);
-    p       = -u + beta*p;
-    v       = A'*(A*p) + lam*p;
+    u       = r - SAt'*z;
+    p       = -u+beta*p;
+    v       = A*(A'*p) + lam*p;
     
-    xx(:,k) = w;
+    xx(:,k)  = (A'*alpha)/lam;
 end
 xx      = xx(:,1:k);
 x       = xx(:,end);
+
+
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
 
 % flop count
-f_init = 2*d^2 + 6*n*d + 17*d;
-f_iter = 2*(d^2) + 4*n*d + 16 + 31*d;
-flopc  = [1:k]*f_iter + f_init + f_rp + f_qr;   
-
+f_init  = 2*n^2+ 4*n*d + 4*m*n + 12*n + 9*d + 16 ;
+f_iter  = 2*(n^2) + 4*n*d + 4*m*n + 5*n;
+flopc   = [1:k]*f_iter + f_rp + f_qr + f_init;    
 
 end
-
-
-
 
 
 

@@ -1,7 +1,7 @@
-function [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
+function [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
 %%
 %
-% [x,xx,time,flopc,in_iter] = mihs_inexact_iko(A,b,lam,m,tol,maxit,params)
+% [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 %   params.SA sketch amtrix
 %
@@ -25,7 +25,7 @@ end
         params.subtol = 1e-2;
     end
     if(~isfield(params, 'submaxit'))
-        params.maxit = 25;
+        params.submaxit = 25;
     end
 
    
@@ -55,12 +55,14 @@ while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
     grad    = A'*(b-A*x) - lam*x;
     
     %solve subproblem
-    [dx, in_iter(k), f_dx]      = AA_b_solver(SA,grad, lam, cgtol, cgmaxit, dx);
+    [dx, in_iter(k), f_dx]      = AA_b_solver(SA,grad, lam, params.subtol, params.submaxit, dx);
     xn                          = x + alpha*dx + beta*(x - xp);
     
     %update
     xp      = x;
     x       = xn;
+    
+    %store and count flop
     xx(:,k) = x; 
     flopc(k)= f_dx + 4*n*d + n + 7*d;
 end

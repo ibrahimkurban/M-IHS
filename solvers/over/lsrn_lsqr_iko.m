@@ -9,6 +9,7 @@ function [x,xx,time,flopc] = lsrn_lsqr_iko(A,b,lam,m,tol,x1,maxit,params)
 % params.SA = sketch matrix otherwise it is Gaussian
 % flopc is flop count
 
+[n,d] = size(A);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SA, rp_time, f_rp] = generate_SA_lsrn(A,m, true);
