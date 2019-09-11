@@ -12,7 +12,7 @@ function [x, k, flopc] = AA_b_solver_iko(A, b, par, tol, maxit, x1)
 %   maxit       : 100
 %   x1          : zeros
 %
-
+[n,d]   = size(A);
 %% initial estimate
 if(nargin < 4)
     tol     = 1e-2;
@@ -82,6 +82,6 @@ end
 if(nargout > 2)
     f_iter = 4*n*d + 4*n + 9*d + 50;
     f_init = 2*n*d + 4*d + 2*n + 35;
-    flopc  = f_iter*[1:i]+f_init;
+    flopc  = f_iter*[1:k]+f_init;
 end
 end

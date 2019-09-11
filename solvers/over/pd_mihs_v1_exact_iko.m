@@ -35,7 +35,7 @@ else
 end
 
 %% momentum
-r       = params.k0./[m1, m2];
+r       = params.k0./m;
 alpha   = (1-r).^2;
 beta    = r;
 
@@ -45,7 +45,7 @@ in_iter = zeros(1,maxit(1));
 x       = x1;
 xp      = x;
 lami    = lam^-1;
-nu      = zeros(m1,1);
+nu      = zeros(m(1),1);
 nup     = nu;
 i       = 0;
 while(i < 2 || (norm(x - xp)/norm(xp) >= tol(1) && i < maxit(1)))
@@ -54,10 +54,10 @@ while(i < 2 || (norm(x - xp)/norm(xp) >= tol(1) && i < maxit(1)))
     
     %inexact subsolver
     j      = 0;
-    while(j < 2 || (norm(nu - nup)/norm(nup) >= tol2 && j < maxit2))
+    while(j < 2 || (norm(nu - nup)/norm(nup) >= tol(2) && j < maxit(2)))
         j    = j+1;
         %sub prob gradient
-        g    = SA*(2*bt - SA'*nu) - lam*nu;
+        g    = SA*(bt - SA'*nu) - lam*nu;
         %sub solve problem
         dnu  = R\(R'\g);
         %momentum
@@ -68,7 +68,7 @@ while(i < 2 || (norm(x - xp)/norm(xp) >= tol(1) && i < maxit(1)))
         nu   = nun;
     end
     in_iter(i) = j;
-    dx      = lami*(bt - 0.5*(SA'*nu));
+    dx      = lami*(bt - (SA'*nu));
     xn      = x + alpha(1)*dx +beta(1)*(x - xp);
     xp      = x;
     x       = xn;
@@ -85,13 +85,13 @@ time    = toc+rp_time1 + rp_time2;
 % flop count
 f_iter1 = 4*n*d + 2*m(1)*d + 9*d;
 f_iter2 = 4*m(1)*d + 2*m(1)^2 + 21*m(1) + n;
-flopc   = [1:k]*f_iter1 + cumsum(in_iter)*f_iter2 + f_rp1 + f_rp2 + f_qr;
+flopc   = [1:i]*f_iter1 + cumsum(in_iter)*f_iter2 + f_rp1 + f_rp2 + f_qr;
 end
 
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -110,8 +110,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet

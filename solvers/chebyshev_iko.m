@@ -6,15 +6,15 @@ function [x, maxit, xx, flopc] = chebyshev_iko(A,b,r,maxit)
 %
 %   [x, maxit, xx, flopc] = chebyshev_iko(A,b,r,maxit)
 %   r is the d/m
+[n,d]   = size(A);
 %% momentum weights
-Ksup    = 1/(1-sqrt(r))^2;% + 0.28;
-Kinf    = 1/(1+sqrt(r))^2;% - 0.030;
+Ksup    = 1/(1-sqrt(r))/sqrt(d/r);% + 0.28;
+Kinf    = 1/(1+sqrt(r))/sqrt(d/r);% - 0.030;
 
-dc = (Ksup + Kinf)/2;
-cc = (Ksup - Kinf)/2;
+dc = (Ksup^2 + Kinf^2)/2;
+cc = (Ksup^2 - Kinf^2)/2;
 
 %% init
-[n,d]   = size(A);
 xx      = zeros(d, maxit);
 r       = b;
 x       = zeros(d,1);
@@ -22,29 +22,29 @@ v       = zeros(d,1);
 
 for i=1:maxit
     %beta
-    switch i
+    switch i-1
         case 0
             beta = 0;
         case 1
             beta = 0.5*(cc/dc)^2;
         otherwise
-            beta = (alpha*cc*0.5)^2;
+            beta = (alha*cc*0.5)^2;
     end
     
     %alpha
-    switch i
+    switch i-1
         case 0
-            alpha = 1/dc;
+            alha = 1/dc;
         case 1
-            alpha = dc - cc^2/(2*dc);
+            alha = dc - cc^2/(2*dc);
         otherwise
-            alpha = 1/(d - alpha*c^2/4);
+            alha = 1/(dc - alha*cc^2/4);
     end
     
     %update
     v = beta*v + A'*r;
-    x = x + alpha*v;
-    r = r - alpha*(A*v);
+    x = x + alha*v;
+    r = r - alha*(A*v);
     
     %save
     xx(:,i) = x;
@@ -54,4 +54,6 @@ end
 if(nargout > 3)
     f_iter = 20 + 4*d + 4*n*d + 2*n;
     flopc  = f_iter*[1:maxit];
+end
+
 end

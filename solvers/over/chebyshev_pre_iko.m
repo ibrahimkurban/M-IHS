@@ -1,7 +1,8 @@
-function [x,xx,time,flopc] = mihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
-%%MIHS_EXACT_IKO solver for over-determined systems
+function [x,xx,time,flopc] = chebyshev_pre_iko(A,b,lam,m,x1,tol,maxit,params)
+%%CHEBYSHEV_IKO chebyshev semiconvergence method with preconditioner 
+% (A'S'SA + lam I)^{-1}
 %
-% [x, xx, time, flopc] = mihs_exact_iko(A,b,lam,m,tol,maxit,params)
+% [x,xx,time,flopc] = chebyshev_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 %   params.SA sketch amtrix
 %   params.k0 effective rank (reqirement if not known run eff_rank_solver)
@@ -33,49 +34,48 @@ end
 %% momentum weights
 r       = params.k0/m;
 
-%%robust ones
-% Ksup    = 1/(1-sqrt(r))^2 + 0.28;
-% Kinf    = 1/(1+sqrt(r))^2 - 0.030;
-% % 
-% alpha   = 4/( sqrt(Ksup) + sqrt(Kinf) )^2;
-% beta    = (  ( sqrt(Ksup) - sqrt(Kinf) )/( sqrt(Ksup) + sqrt(Kinf) )  )^2;
-%%theoric ones
-alpha   = (1-r)^2;
-beta    = r;
+Ksup    = 1/(1-sqrt(r))^2;% + 0.28;
+Kinf    = 1/(1+sqrt(r))^2;% - 0.030;
 
-%% data
-xx      = zeros(d, maxit);
+%%cosntants
+dc = (Ksup + Kinf)/2;
+cc = (Ksup - Kinf)/2;
 
 %% iteration
-xp      = x1*0;
+xx      = zeros(d, maxit);
 x       = x1;
-k       = 0;
-while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
-    k       = k+1;
-    grad    = A'*(b-A*x) - lam*x;
-    xn      = x + alpha*(R\(R'\grad)) + beta*(x - xp);
-        
-    %update
-    xp      = x;
-    x       = xn;
-    xx(:,k) = x; 
-end
-xx      = xx(:,1:k);
 
+for i = 1:maxit
+    %gradient
+    grad    = A'*(b-A*x) - lam*x;
+    
+    %preconditioning
+    z       = (R\(R'\grad));
+    
+    %parameters
+    if (i ==1)
+        p       = z;
+        alpha   = 2/dc;
+    else
+        beta    = (cc*alpha/2)^2;
+        alpha   = 1/(dc- beta);
+        p       = z + beta*p;
+    end
+    x = x + alpha*p;
+
+
+    xx(:,i) = x;
+end
 
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
 
 % flop count
-f_iter = 2*(d^2) + 4*n*d + n + 21*d;
-flopc   = [1:k]*f_iter + f_rp + f_qr;  
+f_iter  = 2*(d^2) + 4*n*d + n + 18*d;
+flopc   = [1:maxit]*f_iter + f_rp + f_qr;  
 
 end
-
-
-
-
 
 
 %% IF SA is not provided
@@ -111,3 +111,4 @@ if(nargout > 2)
     flopc   = f_DA + f_HDA + f_SA;
 end
 end
+

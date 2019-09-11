@@ -30,8 +30,11 @@ else
 end
 
 %% LSQR Solver
-[x, ~, xx, f_lsqr] = lsqr_pre_iko([A; sqrt(lam)],[b; zeros(d)],R,tol,maxit);
-
+if(lam == 0)
+    [x, ~, xx, f_lsqr] = lsqr_pre_iko(A,b,0,R,tol,maxit);
+else
+    [x, ~, xx, f_lsqr] = lsqr_pre_iko([A; sqrt(lam)*speye(d)],[b; zeros(d,1)],0,R,tol,maxit);
+end
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
 time    = toc+rp_time;
@@ -47,7 +50,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_blendenpik(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_blendenpik(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_blendenpik(A,SSIZE,wrep)
@@ -66,8 +69,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 %% flop count refer to lightspeed malab packet
 if(nargout > 2)

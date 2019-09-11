@@ -37,7 +37,11 @@ in_iter = zeros(maxit,1);
 
 %% effective rank
 if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = eff_rank_solver(SA, SA, lam);
+    [k0, ~, f_tr] = hutchinson_estimator_iko(SA, SA, lam);
+    params.k0 = k0;
+else
+    k0      = params.k0;
+    f_tr    = 0;
 end
 tic;
 %% momentum weights
@@ -55,7 +59,7 @@ while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
     grad    = A'*(b-A*x) - lam*x;
     
     %solve subproblem
-    [dx, in_iter(k), f_dx]      = AA_b_solver(SA,grad, lam, params.subtol, params.submaxit, dx);
+    [dx, in_iter(k), f_dx]      = AA_b_solver_iko(SA,grad, lam, params.subtol, params.submaxit, dx);
     xn                          = x + alpha*dx + beta*(x - xp);
     
     %update
@@ -64,7 +68,7 @@ while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
     
     %store and count flop
     xx(:,k) = x; 
-    flopc(k)= f_dx + 4*n*d + n + 7*d;
+    flopc(k)= f_dx(end) + 4*n*d + n + 7*d;
 end
 xx      = xx(:,1:k);
 flopc   = flopc(1:k);
@@ -85,7 +89,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -104,8 +108,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet

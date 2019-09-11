@@ -17,10 +17,10 @@ function [x,xx,time,flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
+    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, true);
 else
     if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, true);
     end
 end
 tic;
@@ -80,7 +80,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -99,8 +99,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet
