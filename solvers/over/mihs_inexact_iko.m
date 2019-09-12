@@ -20,15 +20,15 @@ else
     noparam     = false;
 end
 
-%% inexact tolerance 
-    if(~isfield(params, 'subtol'))
-        params.subtol = 1e-2;
-    end
-    if(~isfield(params, 'submaxit'))
-        params.submaxit = 25;
-    end
+%% inexact tolerance
+if(noparam ||~isfield(params, 'subtol'))
+    params.subtol = 1e-2;
+end
+if(noparam || ~isfield(params, 'submaxit'))
+    params.submaxit = 25;
+end
 
-   
+
 %% data
 [n,d]   = size(A);
 xx      = zeros(d, maxit);
@@ -67,7 +67,7 @@ while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
     x       = xn;
     
     %store and count flop
-    xx(:,k) = x; 
+    xx(:,k) = x;
     flopc(k)= f_dx(end) + 4*n*d + n + 7*d;
 end
 xx      = xx(:,1:k);
@@ -79,7 +79,7 @@ in_iter = in_iter(1:k);
 time    = toc+rp_time;
 
 % flop count
-flopc   = cumsum(flopc) + f_rp + f_tr;  
+flopc   = cumsum(flopc) + f_rp + f_tr;
 
 end
 
@@ -116,7 +116,7 @@ time    = toc;
 if(nargout > 2)
     f_DA    = 18*n + n*d;
     f_HDA   = ceil(nt*d*log2(7*m));
-    f_SA    = 18*nt + m*d; 
+    f_SA    = 18*nt + m*d;
     
     flopc   = f_DA + f_HDA + f_SA;
 end

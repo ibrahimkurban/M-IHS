@@ -48,7 +48,7 @@ xx  = N*xx;
 time    = toc+rp_time;
 
 % flop count
-flopc   = f_rp + f_lsqr + f_svd + iter*(d+2*d^2);
+flopc   = f_rp + f_lsqr + f_svd + [1:iter]*(d+2*d^2);
 
 
 end

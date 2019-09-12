@@ -73,7 +73,7 @@ while(k < 2 || (norm(alphaD*pD)/norm(aDp) >= tol(1) && k < maxit(1)))
     norm2rD = sum(rD.^2);
     rD      = rD + alphaD*vD;
     %%
-    zt      = zeros(m1,1);
+    zt      = zeros(m(1),1);
     ztp     = zt;
     rP      = -SAt*rD;
     uP      = R\(R'\rP);
@@ -117,7 +117,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -136,8 +136,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet

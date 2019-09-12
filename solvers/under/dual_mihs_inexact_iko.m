@@ -1,4 +1,4 @@
-function [x,xx,time,flopc,params] = dual_mihs_inexact_iko(A,b,lam,m,tol,x1,maxit,params)
+function [x,xx,time,flopc,params] = dual_mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
 %%DUAL_MIHS solver for underdetermined systems
 %
 % [x,xx,time,flopc,params] = dual_mihs_inexact_iko(A,b,lam,m,tol,x1,maxit,params)
@@ -10,17 +10,19 @@ function [x,xx,time,flopc,params] = dual_mihs_inexact_iko(A,b,lam,m,tol,x1,maxit
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SAt, rp_time,f_rp]   = generate_SA_mihs(A',m, false);
+    noparam = true;
 else
+    noparam = false;
     if(~isfield(params, 'SAt'))
         [SAt, rp_time,f_rp] = generate_SA_mihs(A',m, false);
     end
 end
 
 %% inexact tolerance
-if(~isfield(params, 'subtol'))
+if(noparam||~isfield(params, 'subtol'))
     params.subtol = 1e-2;
 end
-if(~isfield(params, 'submaxit'))
+if(noparam||~isfield(params, 'submaxit'))
     params.submaxit = 25;
 end
 
@@ -32,7 +34,11 @@ in_iter = zeros(maxit,1);
 
 %% effective rank
 if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = eff_rank_solver(SAt, SAt, lam);
+    [k0, ~, f_tr]   = eff_rank_solver(SAt, SAt, lam, 2, 1e-1, 50);
+    params.k0       = k0;
+else
+    k0      = params.k0;
+    f_tr    = 0;
 end
 tic;
 %% momentum weights
@@ -59,8 +65,8 @@ while(k < 2 || (norm(nu - nup)/norm(nup) >= tol && k < maxit))
     grad        = b - A*(A'*nu) - lam*nu;
     
     %solve small system
-    [dnu, in_iter(k), f_dx] = AA_b_solver(SAt,grad, lam, params.subtol, params.submaxit, dnu);
-    nun                     = nu - alpha*dnu + beta*(nu - nup);
+    [dnu, in_iter(k), f_dx] = AA_b_solver_iko(SAt,grad, lam, params.subtol, params.submaxit, dnu);
+    nun                     = nu + alpha*dnu + beta*(nu - nup);
     
     %update
     nup         = nu;
@@ -68,7 +74,7 @@ while(k < 2 || (norm(nu - nup)/norm(nup) >= tol && k < maxit))
     
     %store and count flop
     xx(:,k)     = A'*nu;
-    flopc(k)    = f_dx + 4*n*d + 8*n;
+    flopc(k)    = f_dx(end) + 4*n*d + 8*n;
 end
 xx  = xx(:,1:k);
 x   = xx(:,end);
@@ -78,7 +84,7 @@ time    = toc+rp_time;
 
 % flop count
 f_iter = 2*(n^2) + 4*n*d + 22*n;
-flopc   = [1:k]*f_iter + f_rp + f_tr;
+flopc   = cumsum(flopc(:)') + [1:k]*f_iter + f_rp + f_tr;
 
 end
 
@@ -86,7 +92,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -105,8 +111,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet

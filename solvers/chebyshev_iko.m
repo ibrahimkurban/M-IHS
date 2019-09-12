@@ -1,26 +1,28 @@
-function [x, maxit, xx, flopc] = chebyshev_iko(A,b,r,maxit)
+function [x, maxit, xx, flopc] = chebyshev_iko(A,b,x1,r,tol,maxit)
 %%CHEBYSHEV_IKO chebyshev implementation for LSRN algortihm refer to
 % Meng, Xiangrui, Michael A. Saunders, and Michael W. Mahoney. 
 % "LSRN: A parallel iterative solver for strongly over-or underdetermined systems." 
 % SIAM Journal on Scientific Computing 36.2 (2014): C95-C118.
 %
-%   [x, maxit, xx, flopc] = chebyshev_iko(A,b,r,maxit)
+%   [x, maxit, xx, flopc] = chebyshev_iko(A,b,x1,r,maxit)
 %   r is the d/m
 [n,d]   = size(A);
 %% momentum weights
-Ksup    = 1/(1-sqrt(r))/sqrt(d/r);% + 0.28;
-Kinf    = 1/(1+sqrt(r))/sqrt(d/r);% - 0.030;
+Ksup    = 1/(1-sqrt(r))/sqrt(min(n,d)/r);% + 0.28;
+Kinf    = 1/(1+sqrt(r))/sqrt(min(n,d)/r);% - 0.030;
 
 dc = (Ksup^2 + Kinf^2)/2;
 cc = (Ksup^2 - Kinf^2)/2;
 
 %% init
 xx      = zeros(d, maxit);
-r       = b;
-x       = zeros(d,1);
+r       = b - A*x1;
+bnrm    = norm(b);
+x       = x1;
 v       = zeros(d,1);
-
-for i=1:maxit
+i       = 0;
+while(i < 2 || (norm(r)/bnrm >= tol && i < maxit))
+    i       = i+1;
     %beta
     switch i-1
         case 0

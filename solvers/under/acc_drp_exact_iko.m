@@ -38,7 +38,7 @@ end
 xx      = zeros(d,maxit);
 alpha   = zeros(n,1);
 r       = (-lam)*b;
-z       = SAt*(SR\(SR.'\r));
+z       = SAt*(R\(R.'\r));
 u       = r - SAt'*z;
 p       = -u;
 v       = A*(A'*p) + lam*p;
@@ -52,7 +52,7 @@ while(k < 2 || (norm(dffxp)/norm(xp) >= tol && k < maxit))
     alpha   = alpha + a*p;
     rp      = r;
     r       = r + a*v;
-    z       = SAt*(SR\(SR'\r));
+    z       = SAt*(R\(R'\r));
     beta    = (r'*u)/(rp'*rp);
     u       = r - SAt'*z;
     p       = -u+beta*p;
@@ -78,7 +78,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -97,8 +97,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet

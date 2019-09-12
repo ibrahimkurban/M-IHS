@@ -1,4 +1,4 @@
-function [x,xx,time,flopc] = dual_mihs_exact_iko(A,b,lam,m,tol,x1,maxit,params)
+function [x,xx,time,flopc] = dual_mihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %%DUAL_MIHS solver for underdetermined systems
 %
 % [x,xx,time,flopc] = dual_mihs_exact_iko(A,b,lam,m,tol,x1,maxit,params)
@@ -41,6 +41,7 @@ alpha   = (1-r)^2;
 beta    = r;
 
 %% data
+x       = x1;
 xx      = zeros(d, maxit);
 nu      = zeros(n,1);
 nup     = zeros(size(nu));
@@ -48,17 +49,18 @@ k = 0;
 while(k < 2 || (norm(nu - nup)/norm(nup) >= tol && k < maxit))
     k           = k+1;
     %grad
-    grad        = b - A*(A'*nu) - lam*nu;
+    grad        = b - A*x - lam*nu;
     
     %solve small system
     dnu         = R\(R'\grad);
-    nun         = nu - alpha*dnu + beta*(nu - nup);
+    nun         = nu + alpha*dnu + beta*(nu - nup);
     
     %update
     nup         = nu;
     nu          = nun;
     
-    xx(:,k)     = A'*nu;
+    x           = A'*nu;
+    xx(:,k)     = x;
 end     
 xx  = xx(:,1:k);
 x   = xx(:,end);
@@ -76,7 +78,7 @@ end
 
 
 %% IF SA is not provided
-function [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
+function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
 %%GENERATE_SA generates ROS sketch matrix
 %
 %   [SA, time, flopc] = generate_SA_mihs(A,SSIZE,wrep)
@@ -95,8 +97,8 @@ tic;
 radem   = (randi(2, n, 1) * 2 - 3);                     % rademacher
 DA      = A .* radem;                                   % one half+1 and rest -1
 HDA     = dct(DA,nt);                                      % DCT transform
-idx     = randsample(nt, SSIZE*N, wrep);                 % sampling pattern
-SA      = HDA(idx, :)*(sqrt(nt)/sqrt(SSIZE));              % subsampling
+idx     = randsample(nt, m, wrep);                 % sampling pattern
+SA      = HDA(idx, :)*(sqrt(nt)/sqrt(m));              % subsampling
 time    = toc;
 
 %% flop count refer to lightspeed malab packet

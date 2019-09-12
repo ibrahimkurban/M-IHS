@@ -71,7 +71,7 @@ if ( error > tol ) flag = 1; end         % no convergence
 
 %% flop count refer to lightspeed malab packet
 if(nargout > 2)
-    n = size(b);
+    n = size(b,1);
     if(pre)
         f_iter = 3*n^2 + 17*n + 16;
     else
@@ -84,7 +84,7 @@ if(nargout > 2)
     if(exist('n2', 'var'))
         f_init = 4*n*n2 + + 10*n + 16;
     end
-    flopc   = [1:i]*f_iter + f_init;
+    flopc   = [1:iter]*f_iter + f_init;
 end
 
 end
