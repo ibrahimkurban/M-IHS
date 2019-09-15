@@ -13,8 +13,12 @@ function [x,xx,time, flopc] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
 if(~exist('params', 'var'))
     [SA, rp_time, f_rp] = generate_SA_blendenpik(A,m, true);
 else
-    if(~isfield(params, 'SA'))
-        [SA, rp_time, f_rp] = generate_SA_blendenpik(A,m, true);
+        if(~isfield(params, 'SA'))
+        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    else
+        SA      = params.SA;
+        rp_time = 0;
+        f_rp    = 0;
     end
 end
 tic

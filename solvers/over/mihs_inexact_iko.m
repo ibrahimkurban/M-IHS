@@ -5,19 +5,32 @@ function [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,ma
 %
 %   params.SA sketch amtrix
 %
-%           params.submaxit sets number max iteration for subsolver (25)
+%           params.submaxit sets number max iteration for subsolver (k0)
 %           params.subtol   sets tolerance for subsolver (relative
 %           residual)(1e-2)
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
+    [SA, rp_time,f_rp]   = generate_SA_mihs([A, b],m, false);
+    SA = SA(:,1:end-1);
     noparam         = true;
 else
     if(~isfield(params, 'SA'))
         [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    else
+        SA      = params.SA;
+        rp_time = 0;
+        f_rp    = 0;
     end
     noparam     = false;
+end
+%% effective rank
+if(noparam || ~isfield(params, 'k0'))
+    [k0, ~, f_tr] = hutchinson_estimator_iko(SA, SA, lam);
+    params.k0 = k0;
+else
+    k0      = params.k0;
+    f_tr    = 0;
 end
 
 %% inexact tolerance
@@ -25,7 +38,7 @@ if(noparam ||~isfield(params, 'subtol'))
     params.subtol = 1e-2;
 end
 if(noparam || ~isfield(params, 'submaxit'))
-    params.submaxit = 25;
+    params.submaxit = max(k0, 25);
 end
 
 
@@ -35,14 +48,7 @@ xx      = zeros(d, maxit);
 flopc   = zeros(maxit,1);
 in_iter = zeros(maxit,1);
 
-%% effective rank
-if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = hutchinson_estimator_iko(SA, SA, lam);
-    params.k0 = k0;
-else
-    k0      = params.k0;
-    f_tr    = 0;
-end
+
 tic;
 %% momentum weights
 r       = k0/m;

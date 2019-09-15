@@ -22,7 +22,11 @@ if(~exist('params', 'var'))
     [SA, rp_time, f_rp] = generate_SA_lsrn(A,m);
 else
     if(~isfield(params, 'SA'))
-        [SA, rp_time, f_rp] = generate_SA_lsrn(A,m);
+        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    else
+        SA      = params.SA;
+        rp_time = 0;
+        f_rp    = 0;
     end
 end
 tic

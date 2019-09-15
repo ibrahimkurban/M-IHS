@@ -26,21 +26,6 @@ else
     end
 end
 
-%% inexact tolerance
-if(~isfield(params, 'subtol'))
-    params.subtol = 1e-2;
-end
-if(~isfield(params, 'submaxit'))
-    params.submaxit = 25;
-end
-
-%% data
-[n,d]   = size(A);
-xx      = zeros(d, maxit(1));
-flopc   = zeros(1, maxit(1));
-in_iter = zeros(1, maxit(1));
-
-%% effective rank
 %% effective rank
 if(noparam || ~isfield(params, 'k0'))
     [k0, ~, f_tr] = hutchinson_estimator_iko(WASt, WASt, lam, 2, 1e-1, 50);
@@ -49,6 +34,20 @@ else
     k0          = params.k0;
     f_tr        = 0;
 end
+
+%% inexact tolerance
+if(noparam || ~isfield(params, 'subtol'))
+    params.subtol = 1e-2;
+end
+if(noparam|| ~isfield(params, 'submaxit'))
+    params.submaxit = max(25, k0);
+end
+
+%% data
+[n,d]   = size(A);
+xx      = zeros(d, maxit(1));
+flopc   = zeros(1, maxit(1));
+in_iter = zeros(1, maxit(1));
 tic;
 
 %% momentum

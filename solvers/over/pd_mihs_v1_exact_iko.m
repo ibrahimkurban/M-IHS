@@ -17,9 +17,14 @@ if(~exist('params', 'var'))
 else
     if(~isfield(params, 'SAt'))
         [SA, rp_time1,f_rp1] = generate_SA_mihs(A,m(1), false);
-    end
-    if(~isfield(params, 'WASt'))
         [WASt, rp_time2,f_rp2] = generate_SA_mihs(SA',m(2), false);
+    else
+        SA          = params.SA;
+        WASt        = params.WASt;
+        rp_time1    = 0;
+        rp_time2    = 2;
+        f_rp1       = 0;
+        f_rp2       = 0;
     end
 end
 tic;

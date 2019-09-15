@@ -1,5 +1,5 @@
 function [x,xx,time,flopc] = chebyshev_pre_iko(A,b,lam,m,x1,tol,maxit,params)
-%%CHEBYSHEV_IKO chebyshev semiconvergence method with preconditioner 
+%%CHEBYSHEV_IKO chebyshev semiconvergence method with preconditioner
 % (A'S'SA + lam I)^{-1}
 %
 % [x,xx,time,flopc] = chebyshev_iko(A,b,lam,m,x1,tol,maxit,params)
@@ -16,6 +16,10 @@ if(~exist('params', 'var'))
 else
     if(~isfield(params, 'SA'))
         [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    else
+        SA      = params.SA;
+        rp_time = 0;
+        f_rp    = 0;
     end
     if(~isfield(params, 'k0'))
         params.k0 = d;
@@ -24,11 +28,11 @@ end
 tic;
 %% QR decomposition
 if(lam == 0)
-   [~, R] = qr(SA,0);
-   f_qr   = ceil(2*m*d^2-2/3*d^3);
+    [~, R] = qr(SA,0);
+    f_qr   = ceil(2*m*d^2-2/3*d^3);
 else
-   [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
-   f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
+    [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
+    f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
 end
 
 %% momentum weights
@@ -62,8 +66,8 @@ for i = 1:maxit
         p       = z + beta*p;
     end
     x = x + alpha*p;
-
-
+    
+    
     xx(:,i) = x;
 end
 
@@ -73,7 +77,7 @@ time    = toc+rp_time;
 
 % flop count
 f_iter  = 2*(d^2) + 4*n*d + n + 18*d;
-flopc   = [1:maxit]*f_iter + f_rp + f_qr;  
+flopc   = [1:maxit]*f_iter + f_rp + f_qr;
 
 end
 
@@ -106,7 +110,7 @@ time    = toc;
 if(nargout > 2)
     f_DA    = 18*n + n*d;
     f_HDA   = ceil(nt*d*log2(7*m));
-    f_SA    = 18*nt + m*d; 
+    f_SA    = 18*nt + m*d;
     
     flopc   = f_DA + f_HDA + f_SA;
 end

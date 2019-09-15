@@ -15,6 +15,10 @@ if(~exist('params', 'var'))
 else
     if(~isfield(params, 'SA'))
         [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+    else
+        SA      = params.SA;
+        rp_time = 0;
+        f_rp    = 0;
     end
     if(~isfield(params, 'k0'))
         params.k0 = d;
