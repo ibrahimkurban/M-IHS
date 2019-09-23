@@ -64,8 +64,13 @@ for i = 2:k
     D(:,i) = d;
     
     %check accuracy
-    if(i > 2 && rr(i)*tt(i) < 1e-6*rr(i-1)*tt(i-1))
-        ii = i-1;
+    % this is due to unstable implemantation of GKL procedure
+    % possible reason is limited double precision
+    % this is a temporary solution, may possible be wrong
+    % need some work here
+    % there exist some packets that solves this issue in C
+    if(i > 2 && rr(i)*tt(i) > 10*rr(i-1)*tt(i-1))
+        ii = i-2;
         break;
     end
 end

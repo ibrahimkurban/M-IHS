@@ -46,7 +46,7 @@ fprintf('Oracle reg. par: %1.2e\n', par0);
 
 lam = par0;
 %%
-N_met   = 9;
+N_met   = 5;
 err_mc  = zeros(MAXIT,N_met,MC);
 flop_mc = zeros(MAXIT,N_met,MC);
 names   = cell(N_met,1);
