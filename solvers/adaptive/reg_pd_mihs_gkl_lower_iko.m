@@ -11,7 +11,7 @@ function [x, xx, pars1, pars2, dev_est, in_iter, time] = reg_pd_mihs_gkl_lower_i
 %   params.L     = size of gkl procedure
 %   
 %
-% I. Kurban Özaslan
+% I. Kurban Ã–zaslan
 % Bilkent EE
 % September 2019
 
@@ -62,7 +62,7 @@ RR              = R*R';
 RR_I            = @(lam)(RR + lam*speye(L));
 params.L        = L;
 
-%% largest sing value estimate
+%% largest sing value estimate (greshgorin disc can be used instead)
 sig1_log = log10(max(svd(full(R(1:10,1:10)))));
 
 %% lower bound
