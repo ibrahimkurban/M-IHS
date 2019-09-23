@@ -34,7 +34,7 @@ flopc               = 2*n*d*N;
 in_iter     = zeros(N,1);
 tr_est      = 0;
 for i=1:N
-    [AA_Iiv, in_iter(i),fc]     = AA_b_solver(SA, Av(:,i), par, tol, maxit);
+    [AA_Iiv, in_iter(i),fc]     = AA_b_solver_iko(SA, Av(:,i), par, tol, maxit);
     tr_est                      = tr_est + sum(Av(:,i).*AA_Iiv);
     flopc                       = flopc + fc + 2*d;
 end

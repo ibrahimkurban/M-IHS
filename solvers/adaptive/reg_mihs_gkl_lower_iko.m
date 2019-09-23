@@ -1,12 +1,13 @@
-function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_corrected_iko(A,b,m,x1,xtol,ptol,maxit,params)
-%%REG_MIHS_SVD_CORRECTED adaptive regularizaiton of m-ihs algorithm
-%- svd is used
+function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_gkl_lower_iko(A,b,m,x1,xtol,ptol,maxit,params)
+%%REG_MIHS_GKL_LOWER adaptive regularizaiton of m-ihs algorithm
+%- gkl is used
 %- lower parameter is set by gcv of (SA,Sb)
 %
-% [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_lower(A,b,m,x1,xtol,ptol,maxit,params)
+% [x, xx, pars, dev_est, in_iter, time] = reg_mihs_gkl_lower(A,b,m,x1,xtol,ptol,maxit,params)
 %
 %   params.SA   = sketch matrix
 %   params.Sb   = sketch mea.
+%   params.L    = gkl size
 %
 % I. Kurban Özaslan
 % Bilkent EE
@@ -19,6 +20,7 @@ if(~exist('params', 'var'))
     [SA, rp_time]   = generate_SA_mihs([A b],m, false);
     Sb              = SA(:,end);
     SA              = SA(:,1:end-1);
+    params.L        = min(size(A));
 else
     if(~isfield(params, 'SA'))
         [SA, rp_time] = generate_SA_mihs([A b],m, false);
@@ -29,6 +31,9 @@ else
         Sb      = params.Sb;
         rp_time = 0;
     end
+    if(~isfield(params, 'L'))
+        params.L= min(size(A));
+    end
 end
 
 %% some spec
@@ -36,24 +41,27 @@ end
 pars    = zeros(maxit,1);
 xx      = zeros(d,maxit);
 in_iter = zeros(maxit,1);
-
+L       = params.L;
 
 %% SGCV
-[U, sig, V]     = dsvd(full(SA));
-[par_low, dev]  = LS_sgcv_corrected_iko(U, sig,Sb,n);
+ASSb    = SA'*Sb;
+theta1  = norm(ASSb);
+[R,V,D]         = solver_gkl_v2_iko_c(SA, ASSb, L);
+L               = size(R,1);
+RR              = R*R';
+RR_I            = @(lam)(RR + lam*speye(L));
+%% lower bound
+[par_low, dev]  = LS_sgcv_lower_gkl_iko(R,Sb, theta1);
 
-%% some functions
-sigi            = sig.^-1;
-sig2            = sig.^2;
-gamma           = @(lam)(1./(sig2+lam));
-
-%% scale
-par_low_log     = log10(par_low);
+%%scale
+par_low_log     = log10(par_low*m/n);
 dev_est         = dev*sqrt(m/n);
 
 %% Start MAIN ITERATION
 x       = x1;
-xp      = x1*0;
+% xp      = x1*0;
+y       = V'*x;
+yp      = zeros(L,1);
 
 %% MAIN ITERATIONS
 i       = 0;
@@ -64,42 +72,44 @@ while(~EXIT)
     i       = i +1;
     %gradient
     grad    = A'*(b - A*x);
-    
-    %gcv vectors
-    Vg      = V'*grad;
-    Vx      = V'*x;
-    f_gcv   = sigi.*Vg + sig.*Vx; 
 
+    %lanczos
+    f_gcv   = D'*grad + R*y;
+    fun     = @(lam)(norm(((RR_I(lam))\f_gcv)))/(solver_trace_bidiag_inv_iko(RR_I(lam)));
+    
     %minimization
-    options             = optimset('TolX', 1e-3, 'MaxFunEvals', 15, 'Display','off');
-    [par_log,~, ~, out] = fminbnd(@(lam)sub_gcv_svd(10^lam, sig2, f_gcv), ...
-        max(par_log-2, par_low_log), par_log+1, options);    
-    in_iter(i)          = out.funcCount;
+    options                 = optimset('TolX', 1e-3, 'MaxFunEvals', 15, 'Display','off');
+    [par_log,~, ~, out]     = fminbnd(@(lam)fun(10^lam), max(par_log-2, par_low_log), par_log+1, options);
+    in_iter(i)              = out.funcCount;
+    %        [pari, ~, gcv, lambdas1] = grid_search_log(fun, lambdas);
 
     %parameter in decima
     par     = 10^par_log;
-    g_par   = gamma(par);
     
     %solution by gcv
-    dx      = V*(g_par.*(Vg - par*Vx));
+    RR_Ip   = RR_I(par);
+    g_temp  = D'*(grad - par*x);
+    dy      = R'*(RR_Ip\g_temp);
     
     %momentum
-    eff_rank= d - par*sum(g_par);
+    eff_rank= L - par*solver_trace_bidiag_inv_iko(RR_Ip);
     r       = eff_rank/m;
     alpha   = (1-r)^2;
     beta    = r;
     
     %solution to iterate
-    xn      = x + alpha*dx + beta*(x - xp);
+    yn      = y + alpha*dy + beta*(y - yp);
+%     xn      = x + alpha*dx + beta*(x - xp);
     
     %save
-    xp      = x;
-    x       = xn;
+    yp      = y;
+    y       = yn;
+    x       = V*y;
     xx(:,i) = x;
     pars(i) = par;
     
     %exit flag
-    XFLAG = norm(x - xp)/norm(xp) <= xtol;
+    XFLAG = norm(y - yp)/norm(yp) <= xtol;
     KFLAG = i >= maxit; 
     PFLAG = abs(par - par_p)/par_p <= ptol;
    
@@ -115,17 +125,6 @@ in_iter(i+1:end)= nan;
 time    = toc + rp_time;
 
 end
-
-%%
-
-function gcv = sub_gcv_svd(lam, sig2, f)
-
-beta   = lam./(sig2+lam);
-gcv    = norm(beta.*f)/sum(beta);
-
-      
-end
-
 
 %% IF SA is not provided
 function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)
@@ -160,3 +159,4 @@ if(nargout > 2)
     flopc   = f_DA + f_HDA + f_SA;
 end
 end
+

@@ -50,8 +50,8 @@ x1          = zeros(d,1);
 % b0          = A*x0;
 %% Add noise
 
-w       = randn(n,1);
-dev     = level*norm(b0)/norm(w);
+w       = randn(n,numel(level));
+dev     = level*norm(b0)./sqrt(sum(w.^2,1));
 w       = dev(:)'.*w;
 b       = b0 + w;
 
@@ -77,20 +77,24 @@ if(svd_analysis == true)
     for i = 1:N
         [xxOR{1}(:,i), k0(i)]   = LS_truncated_iko(U,sig,V, b(:,i), x1, x0 );
     end
-    
-    err_x = @(xx, dev)(sqrt(sum((xxOR{1}(:,dev) - xx).^2, 1))/norm(xxOR{1}(:,dev)));
-    
+    if(N ==1)
+        err_x = @(xx)(sqrt(sum((xxOR{1} - xx).^2, 1))/norm(xxOR{1}));
+    else
+        err_x = @(xx, dev)(sqrt(sum((xxOR{1}(:,dev) - xx).^2, 1))/norm(xxOR{1}(:,dev)));
+    end
     
     %%% Tikhonov
     par0        = zeros(N,1);
-    for i =1:N 
-        [xxOR{2}(:,i), par0(i)]   = LS_ridge_iko(U,sig,V, b(:,i), x1, @(x)err_x(x, i)); 
-    end
-    if(N == 1)
+    if(N==1)
+        [xxOR{2}, par0]   = LS_ridge_iko(U,sig,V, b, x1, @(x)err_x(x));
         fprintf('Noise deviaiton     : %1.2e\n', dev);
         fprintf('Effective rank      : %d\n', k0);
         fprintf('Oracle reg. par     : %1.1e\n', par0);
-        fprintf('Oracle Error (log)  : %1.1f,    (dec) : %1.3f\n', log10(err_x(xxOR{2},1)), err_x(xxOR{2},1));
+        fprintf('Oracle Error (log)  : %1.1f,    (dec) : %1.3f\n', log10(err_x(xxOR{2})), err_x(xxOR{2}));
+    else
+        for i =1:N
+            [xxOR{2}(:,i), par0(i)]   = LS_ridge_iko(U,sig,V, b(:,i), x1, @(x)err_x(x, i));
+        end
     end
     
     fprintf('\n%2.1e sec elapsed\n\n', toc);
@@ -107,16 +111,16 @@ elseif(svd_analysis && plotting)
     end
     figure('Name', 'Theoric Plot');
     
-%     subplot(1,3,1);
-%     %coherence
-%     imagesc(normA(A), [0 1]); colorbar;
-%     title('coherence of A: $<\hat{a_i}, \hat{a_j}>$', 'Interpreter', 'latex');
-%     xlabel('column index i'); ylabel('column index j')
-%     axis square
-%     set(gca,'fontsize',16)
+    %     subplot(1,3,1);
+    %     %coherence
+    %     imagesc(normA(A), [0 1]); colorbar;
+    %     title('coherence of A: $<\hat{a_i}, \hat{a_j}>$', 'Interpreter', 'latex');
+    %     xlabel('column index i'); ylabel('column index j')
+    %     axis square
+    %     set(gca,'fontsize',16)
     
     %singular values
-    subplot(1,3,2);
+    subplot(1,2,1);
     plot(log10(sig), 'linewidth', 3); hold on;
     plot(log10(abs(U'*b(:,[N, 1]))), 'linewidth', .5); hold on;
     plot(log10(dev([N, 1]).*ones(min(n,d),1)), 'linewidth', .5); hold on;
@@ -129,7 +133,7 @@ elseif(svd_analysis && plotting)
     set(gca,'fontsize',16)
     grid on;
     
-    subplot(1,3,3);
+    subplot(1,2,2);
     plot(log10(sig), 'linewidth', 3); hold on;
     plot(log10(abs((V'*x0))), 'linewidth', .5)
     plot(log10(abs((U'*w(:, [N, 1]))./sig)), 'linewidth', .5);

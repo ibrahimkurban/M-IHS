@@ -22,7 +22,7 @@ end
 options                 = optimset('TolX', 1e-4, 'Display','off');
 [par_log,gcv_val]       = fminbnd(@(lam)gcv_gkl(10^lam, RR, f, delta2,n-L), -10, 3, options);
 par                     = 10^par_log;
-dev_est                 = sqrt(gcv_val)*sqrt(n-L+ solver_trace_bidiag_inv(RR+par*speye(L)));
+dev_est                 = sqrt(gcv_val)*sqrt(n-L+ solver_trace_bidiag_inv_iko(RR+par*speye(L)));
 
 end
 
@@ -37,7 +37,7 @@ end
 function gcv = gcv_gkl(lam, RR, f, delta2,nd)
 
 RR_I    = RR + lam*speye(size(RR));
-tr      = solver_trace_bidiag_inv(RR_I);
+tr      = solver_trace_bidiag_inv_iko(RR_I);
 gcv     = (norm(lam*(RR_I\f))^2 + delta2)/(nd + lam*tr)^2;
 
 end

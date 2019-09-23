@@ -1,5 +1,5 @@
-function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_lower_iko(A,b,m,x1,xtol,ptol,maxit,params)
-%%REG_MIHS_SVD_LOWER adaptive regularizaiton of m-ihs algorithm
+function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_corrected_iko(A,b,m,x1,xtol,ptol,maxit,params)
+%%REG_MIHS_SVD_CORRECTED adaptive regularizaiton of m-ihs algorithm
 %- svd is used
 %- lower parameter is set by gcv of (SA,Sb)
 %
@@ -7,12 +7,11 @@ function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_lower_iko(A,b,m,x1
 %
 %   params.SA   = sketch matrix
 %   params.Sb   = sketch mea.
-%   
 %
 % I. Kurban Özaslan
 % Bilkent EE
 % September 2019
-
+%
 
 
 %% generate sketch matrix or not
@@ -41,15 +40,15 @@ in_iter = zeros(maxit,1);
 
 %% SGCV
 [U, sig, V]     = dsvd(full(SA));
-[par_low, dev]  = LS_sgcv_lower_iko(U, sig,Sb);
 
-%% some functions
+%%some functions
 sigi            = sig.^-1;
 sig2            = sig.^2;
 gamma           = @(lam)(1./(sig2+lam));
 
-%% scale
-par_low         = par_low*m/n;
+%% corrected lower bound
+[par_low, dev]  = LS_sgcv_corrected_iko(U, sig,Sb,n);
+
 par_low_log     = log10(par_low);
 dev_est         = dev*sqrt(m/n);
 
@@ -59,7 +58,7 @@ xp      = x1*0;
 
 %% MAIN ITERATIONS
 i       = 0;
-par_p   = sig(1);
+par_p   = par_low;
 EXIT    = false;
 par_log = par_low_log+2;
 while(~EXIT)
@@ -74,18 +73,12 @@ while(~EXIT)
 
     %minimization
     options             = optimset('TolX', 1e-3, 'MaxFunEvals', 15, 'Display','off');
-    [par_log,~, ~, out] = fminbnd(@(lam)gcv_f(10^lam,sig2,f_gcv), ...
+    [par_log,~, ~, out] = fminbnd(@(lam)sub_gcv_svd(10^lam, sig2, f_gcv), ...
         max(par_log-2, par_low_log), par_log+1, options);    
     in_iter(i)          = out.funcCount;
-    
+
     %parameter in decima
     par     = 10^par_log;
-    
-    %check lower bound
-%     if(par > par_p*10)
-%         par         = 0.5*(par_p + par_low);
-%         par_log     = log10(par);
-%     end
     g_par   = gamma(par);
     
     %solution by gcv
@@ -109,14 +102,14 @@ while(~EXIT)
     %exit flag
     XFLAG = norm(x - xp)/norm(xp) <= xtol;
     KFLAG = i >= maxit; 
-    PFLAG = abs(par - par_p)/par_p < ptol;
+    PFLAG = abs(par - par_p)/par_p <= ptol;
    
     EXIT  = XFLAG || KFLAG || PFLAG;
     par_p = par;
 end
-% xx            = xx(:,1:i);
-% pars          = pars(1:i);
-% in_iter       = in_iter(1:i);
+% xx      = xx(:,1:i);
+% pars    = pars(1:i);
+% in_iter = in_iter(1:i);
 xx(:,i+1:end)   = nan;
 pars(i+1:end)   = nan;
 in_iter(i+1:end)= nan;
@@ -126,13 +119,14 @@ end
 
 %%
 
-function gcv = gcv_f(lam, sig2, f)
+function gcv = sub_gcv_svd(lam, sig2, f)
 
 beta   = lam./(sig2+lam);
 gcv    = norm(beta.*f)/sum(beta);
 
       
 end
+
 
 %% IF SA is not provided
 function [SA, time, flopc] = generate_SA_mihs(A,m,wrep)

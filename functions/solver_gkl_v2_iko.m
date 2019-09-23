@@ -15,14 +15,14 @@ p       = p/rr(1);
 
 
 
-    D       = zeros(d, k);
-    d       = v/rr(1);
-    D(:,1)  = d;
+D       = zeros(d, k);
+d       = v/rr(1);
+D(:,1)  = d;
 
 
 V(:,1)  = v;
 VV      = v;
-
+ii      = k;
 for i = 2:k
     v       = A'*p - rr(i-1)*v;
     v       = v -VV*(VV.'*v);
@@ -30,21 +30,27 @@ for i = 2:k
     v       = v/tt(i);
     
     p       = A*v - tt(i)*p;
-%             p  = p - PP*(PP'*p);
+    %             p  = p - PP*(PP'*p);
     rr(i)   = norm(p);
     p       = p/rr(i);
-    
     
     d = (v - tt(i)*d)/rr(i);
     
     V(:,i) = v;
     D(:,i) = d;
     VV     = V(:,1:i);
+    
+    %check accuracy
+    if(i > 2 && rr(i)*tt(i) < 1e-6*rr(i-1)*tt(i-1))
+        ii = i-1;
+        break;
+    end
 end
-R = (spdiags([rr, tt],[0, 1], k,k));
-
-% figure; subplot(1,2,1); imagesc(abs(P'*P), [1e-15 1e-9]); title('P^TP'); axis square;
-% subplot(1,2,2); imagesc(abs(V'*V), [1e-15 1e-9]); title('V^TV'); axis square;
+R = (spdiags([rr, tt],[0, 1], ii,ii));
+if(ii < k)
+    V = V(:,1:ii);
+    D = D(:,1:ii);
+end
 end
 
 

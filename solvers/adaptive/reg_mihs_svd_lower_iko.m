@@ -1,18 +1,18 @@
-function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_gkl_lower_iko(A,b,m,x1,xtol,ptol,maxit,params)
-%%REG_MIHS_GKL_LOWER adaptive regularizaiton of m-ihs algorithm
-%- gkl is used
+function [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_lower_iko(A,b,m,x1,xtol,ptol,maxit,params)
+%%REG_MIHS_SVD_LOWER adaptive regularizaiton of m-ihs algorithm
+%- svd is used
 %- lower parameter is set by gcv of (SA,Sb)
 %
-% [x, xx, pars, dev_est, in_iter, time] = reg_mihs_gkl_lower(A,b,m,x1,xtol,ptol,maxit,params)
+% [x, xx, pars, dev_est, in_iter, time] = reg_mihs_svd_lower(A,b,m,x1,xtol,ptol,maxit,params)
 %
 %   params.SA   = sketch matrix
 %   params.Sb   = sketch mea.
-%   params.L    = gkl size
+%   
 %
 % I. Kurban Özaslan
 % Bilkent EE
 % September 2019
-%
+
 
 
 %% generate sketch matrix or not
@@ -20,7 +20,6 @@ if(~exist('params', 'var'))
     [SA, rp_time]   = generate_SA_mihs([A b],m, false);
     Sb              = SA(:,end);
     SA              = SA(:,1:end-1);
-    params.L        = min(size(A));
 else
     if(~isfield(params, 'SA'))
         [SA, rp_time] = generate_SA_mihs([A b],m, false);
@@ -31,9 +30,6 @@ else
         Sb      = params.Sb;
         rp_time = 0;
     end
-    if(~isfield(params, 'L'))
-        params.L= min(size(A));
-    end
 end
 
 %% some spec
@@ -41,89 +37,102 @@ end
 pars    = zeros(maxit,1);
 xx      = zeros(d,maxit);
 in_iter = zeros(maxit,1);
-L       = params.L;
+
 
 %% SGCV
-ASSb    = SA'*Sb;
-theta1  = norm(ASSb);
-[R,V,D]         = solver_gkl_v2_iko(SA, ASSb, L);
-[par_low, dev]  = LS_sgcv_lower_gkl_iko(R,Sb, theta1);
-RR              = R*R';
-RR_I            = @(lam)(RR + lam*speye(L));
+[U, sig, V]     = dsvd(full(SA));
 
-%% scale
-par_low_log     = log10(par_low*m/n);
+%%some functions
+sigi            = sig.^-1;
+sig2            = sig.^2;
+gamma           = @(lam)(1./(sig2+lam));
+
+%% lower bound
+[par_low, dev]  = LS_sgcv_lower_iko(U, sig,Sb);
+
+par_low         = par_low*m/n;
+par_low_log     = log10(par_low);
 dev_est         = dev*sqrt(m/n);
-
-
 
 %% Start MAIN ITERATION
 x       = x1;
-% xp      = x1*0;
-y       = V'*x;
-yp      = zeros(L,1);
+xp      = x1*0;
 
 %% MAIN ITERATIONS
 i       = 0;
-par_p   = par_low;
+par_p   = sig(1);
 EXIT    = false;
 par_log = par_low_log+2;
 while(~EXIT)
     i       = i +1;
     %gradient
     grad    = A'*(b - A*x);
-
-    %lanczos
-    f_gcv   = D'*grad + R*y;
-    fun     = @(lam)(norm(((RR_I(lam))\f_gcv)))/(solver_trace_bidiag_inv_iko(RR_I(lam)));
     
-    %minimization
-    options                 = optimset('TolX', 1e-3, 'MaxFunEvals', 15, 'Display','off');
-    [par_log,~, ~, out]     = fminbnd(@(lam)fun(10^lam), max(par_log-2, par_low_log), par_log+1, options);
-    in_iter(i)              = out.funcCount;
-    %        [pari, ~, gcv, lambdas1] = grid_search_log(fun, lambdas);
+    %gcv vectors
+    Vg      = V'*grad;
+    Vx      = V'*x;
+    f_gcv   = sigi.*Vg + sig.*Vx; 
 
+    %minimization
+    options             = optimset('TolX', 1e-3, 'MaxFunEvals', 15, 'Display','off');
+    [par_log,~, ~, out] = fminbnd(@(lam)gcv_f(10^lam,sig2,f_gcv), ...
+        max(par_log-2, par_low_log), par_log+1, options);    
+    in_iter(i)          = out.funcCount;
+    
     %parameter in decima
     par     = 10^par_log;
     
+    %check lower bound
+%     if(par > par_p*10)
+%         par         = 0.5*(par_p + par_low);
+%         par_log     = log10(par);
+%     end
+    g_par   = gamma(par);
+    
     %solution by gcv
-    RR_Ip   = RR_I(par);
-    g_temp  = D'*(grad - par*x);
-    dy      = R'*(RR_Ip\g_temp);
+    dx      = V*(g_par.*(Vg - par*Vx));
     
     %momentum
-    eff_rank= L - par*solver_trace_bidiag_inv_iko(RR_Ip);
+    eff_rank= d - par*sum(g_par);
     r       = eff_rank/m;
     alpha   = (1-r)^2;
     beta    = r;
     
     %solution to iterate
-    yn      = y + alpha*dy + beta*(y - yp);
-%     xn      = x + alpha*dx + beta*(x - xp);
+    xn      = x + alpha*dx + beta*(x - xp);
     
     %save
-    yp      = y;
-    y       = yn;
-    x       = V*y;
+    xp      = x;
+    x       = xn;
     xx(:,i) = x;
     pars(i) = par;
     
     %exit flag
-    XFLAG = norm(y - yp)/norm(yp) <= xtol;
+    XFLAG = norm(x - xp)/norm(xp) <= xtol;
     KFLAG = i >= maxit; 
-    PFLAG = abs(par - par_p)/par_p <= ptol;
+    PFLAG = abs(par - par_p)/par_p < ptol;
    
     EXIT  = XFLAG || KFLAG || PFLAG;
     par_p = par;
 end
-% xx      = xx(:,1:i);
-% pars    = pars(1:i);
-% in_iter = in_iter(1:i);
+% xx            = xx(:,1:i);
+% pars          = pars(1:i);
+% in_iter       = in_iter(1:i);
 xx(:,i+1:end)   = nan;
 pars(i+1:end)   = nan;
 in_iter(i+1:end)= nan;
 time    = toc + rp_time;
 
+end
+
+%%
+
+function gcv = gcv_f(lam, sig2, f)
+
+beta   = lam./(sig2+lam);
+gcv    = norm(beta.*f)/sum(beta);
+
+      
 end
 
 %% IF SA is not provided
@@ -159,4 +168,3 @@ if(nargout > 2)
     flopc   = f_DA + f_HDA + f_SA;
 end
 end
-
