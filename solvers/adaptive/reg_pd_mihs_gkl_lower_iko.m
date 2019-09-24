@@ -11,7 +11,7 @@ function [x, xx, pars1, pars2, dev_est, in_iter, time] = reg_pd_mihs_gkl_lower_i
 %   params.L     = size of gkl procedure
 %   
 %
-% I. Kurban Ã–zaslan
+% I. Kurban Özaslan
 % Bilkent EE
 % September 2019
 

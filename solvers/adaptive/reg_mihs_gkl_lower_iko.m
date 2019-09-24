@@ -45,12 +45,12 @@ L       = params.L;
 
 %% SGCV
 ASSb    = SA'*Sb;
-theta1  = norm(ASSb);
 [R,V,D]         = solver_gkl_v2_iko_c(SA, ASSb, L);
 L               = size(R,1);
 RR              = R*R';
 RR_I            = @(lam)(RR + lam*speye(L));
-%% lower bound
+%% lower bound %!!! L<d -> not resolved, if this is the case discard lower bound throught the code 
+theta1  = norm(ASSb);
 [par_low, dev]  = LS_sgcv_lower_gkl_iko(R,Sb, theta1);
 
 %%scale

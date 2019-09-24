@@ -71,11 +71,11 @@ while(~EXIT)
     %gcv vectors
     Vg      = V'*grad;
     Vx      = V'*x;
-    f_gcv   = sigi.*Vg + sig.*Vx; 
+    f_i     = sigi.*Vg + sig.*Vx; 
 
     %minimization
     options             = optimset('TolX', 1e-3, 'MaxFunEvals', 15, 'Display','off');
-    [par_log,~, ~, out] = fminbnd(@(lam)gcv_f(10^lam,sig2,f_gcv), ...
+    [par_log,~, ~, out] = fminbnd(@(lam)gcv_f(10^lam,sig2,f_i), ...
         max(par_log-2, par_low_log), par_log+1, options);    
     in_iter(i)          = out.funcCount;
     
