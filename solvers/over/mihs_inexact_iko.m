@@ -11,8 +11,7 @@ function [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,ma
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs([A, b],m, false);
-    SA = SA(:,1:end-1);
+    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
     noparam         = true;
 else
     if(~isfield(params, 'SA'))
