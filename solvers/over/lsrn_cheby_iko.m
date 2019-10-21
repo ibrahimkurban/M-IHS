@@ -19,13 +19,17 @@ end
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SA, rp_time, f_rp] = generate_SA_lsrn(A,m);
+    params.k0 = d;
 else
     if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+        [SA, rp_time,f_rp] = generate_SA_lsrn(A,m);
     else
         SA      = params.SA;
         rp_time = 0;
         f_rp    = 0;
+    end
+    if(~isfield(params, 'k0'))
+        params.k0 = d;
     end
 end
 tic

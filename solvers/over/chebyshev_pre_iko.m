@@ -48,8 +48,10 @@ cc = (Ksup - Kinf)/2;
 %% iteration
 xx      = zeros(d, maxit);
 x       = x1;
-
-for i = 1:maxit
+xp      = x1*0;
+i       = 0;
+while(i < 2 || (norm(xp - x)/norm(xp) >= tol && i < maxit))
+    i = i+1;
     %gradient
     grad    = A'*(b-A*x) - lam*x;
     
@@ -65,8 +67,9 @@ for i = 1:maxit
         alpha   = 1/(dc- beta);
         p       = z + beta*p;
     end
+    %update
+    xp= x;
     x = x + alpha*p;
-    
     
     xx(:,i) = x;
 end
