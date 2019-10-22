@@ -81,7 +81,7 @@ while(i < 2 || (norm(nu - nup)/norm(nup) >= tol(1) && i < maxit(1)))
         %update
         zp          = z;
         z           = zn;
-        flopc(i)    = f_dx(end) + 4*m(1)*n + 6*m(1)+n;
+        flopc(i)    = flopc(i) + f_dx(end) + 4*m(1)*n + 6*m(1)+n;
     end
     in_iter(i)  = j;
     %convert
