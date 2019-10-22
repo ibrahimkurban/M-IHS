@@ -89,7 +89,7 @@ while(i < 2 || (norm(x - xp)/norm(xp) >= tol(1) && i < maxit(1)))
         %update
         nup     = nu;
         nu      = nun;
-        flopc(i)= f_dx(end) + 4*m(1)*d + 7*m(1) + d; 
+        flopc(i)= flopc(i) + f_dx(end) + 4*m(1)*d + 7*m(1) + d; 
     end
     in_iter(i) = j;
     dx      = lami*(bi - 0.5*(SA'*nu));
