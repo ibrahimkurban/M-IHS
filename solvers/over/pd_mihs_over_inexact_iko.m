@@ -83,7 +83,7 @@ while(i < 2 || (norm(x - xp)/norm(xp) >= tol(1) && i < maxit(1)))
     while(j < 2 || (norm(nu - nup)/norm(nup) >= tol(2) && j < maxit(2)))
         j    = j+1;
         %sub prob gradient
-        g    = SA*(2*bi - SA'*nu) - lam*nu;
+        g    = SA*(bi - SA'*nu) - lam*nu;
         
         %sub solve problem
         [dnu, in_iter(i),f_dx]   = AA_b_solver_iko(WASt, g, lam, params.subtol, params.submaxit,dnu);
@@ -97,7 +97,7 @@ while(i < 2 || (norm(x - xp)/norm(xp) >= tol(1) && i < maxit(1)))
         flopc(i)= flopc(i) + f_dx(end) + 4*m(1)*d + 7*m(1) + d; 
     end
     in_iter(i) = j;
-    dx      = lami*(bi - 0.5*(SA'*nu));
+    dx      = lami*(bi - (SA'*nu));
     xn      = x + alpha(1)*dx +beta(1)*(x - xp);
     xp      = x;
     x       = xn;
