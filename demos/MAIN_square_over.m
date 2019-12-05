@@ -11,13 +11,13 @@ m       = 2*d;
 TOL     = 0;
 MAXIT   = 20;
 TOL2    = 1e-10;
-MAXIT2  = 55;
+MAXIT2  = 25;
 
 
 PROFILE = 5;%5,3
 MAX     = 1;
 KAPPA   = 8;%7,2
-LEVEL   = 0.01;
+LEVEL   = 0.05;
 MC      = 1;
 
 %% GENERATE DATA
@@ -92,7 +92,7 @@ for mc = 1:MC
     
     %% M-IHS exact
     params1      = struct('k0', k0);
-    [~,xx,~, flopc] = mihs_exact_iko(A,b,lam,m,x1,TOL,MAXIT, params1);
+    [~,xx,~, flopc] = mihs_exact_iko(A,b,lam,4*k0,x1,TOL,MAXIT, params1);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'M-IHS-exact';
@@ -100,7 +100,7 @@ for mc = 1:MC
     
     %% M IHS inexact
     params2      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', k0);
-    [~,xx,~, flopc] = mihs_inexact_iko(A,b,lam,m,x1,TOL,MAXIT, params2);
+    [~,xx,~, flopc] = mihs_inexact_iko(A,b,lam,4*k0,x1,TOL,MAXIT, params2);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'M-IHS-inexact';
