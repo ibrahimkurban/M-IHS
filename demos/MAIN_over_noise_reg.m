@@ -108,7 +108,7 @@ for mc = 1:MC
     
     %% PD M IHS exact
     params3      = struct('k0', k0);
-    [~,xx,~, flopc] = pd_mihs_over_exact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params3);
+    [~,xx,~, flopc] = pd_mihs_over_exact_iko(A,b,lam,[3*k0, 3*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params3);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'PD-MIHS-exact';
@@ -116,7 +116,7 @@ for mc = 1:MC
     
     %% PD M IHS inexact
     params4      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', k0);
-    [~,xx,~, flopc] = pd_mihs_over_inexact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
+    [~,xx,~, flopc] = pd_mihs_over_inexact_iko(A,b,lam,[3*k0, 3*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'PD-MIHS-inexact';
