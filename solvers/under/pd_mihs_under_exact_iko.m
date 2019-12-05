@@ -52,7 +52,7 @@ beta    = r;
 %% initialization
 xx      = zeros(d,maxit(1));
 in_iter = zeros(1,maxit(1));
-x       = x1;
+x       = x1*0;
 nu      = zeros(n,1);
 nup     = nu;
 z       = zeros(m(1),1);
