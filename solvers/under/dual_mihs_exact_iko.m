@@ -46,7 +46,7 @@ alpha   = (1-r)^2;
 beta    = r;
 
 %% data
-x       = x1;
+x       = x1*0;
 xx      = zeros(d, maxit);
 nu      = zeros(n,1);
 nup     = zeros(size(nu));
