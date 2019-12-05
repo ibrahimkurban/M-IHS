@@ -5,7 +5,7 @@ clc
 %%
 n       = 2000;
 d       = 2^16;
-m       = 4000;
+m       = 2000;
 
 
 TOL     = 0;
@@ -47,7 +47,7 @@ fprintf('Oracle reg. par: %1.2e\n', par0);
 
 lam = par0;
 %%
-N_met   = 9;
+N_met   = 6;
 err_mc  = zeros(MAXIT,N_met,MC);
 flop_mc = zeros(MAXIT,N_met,MC);
 names   = cell(N_met,1);
@@ -102,28 +102,28 @@ for mc = 1:MC
     k            = k+1;
     
     %% PD M IHS exact
-    params3      = struct('k0', k0);
-    [~,xx,~, flopc] = pd_mihs_under_exact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL],[MAXIT MAXIT2], params3);
-    err(:,k)     = err_x0(xx);
-    flop(:,k)    = flopc;
-    names{k}     = 'PD MIHS-exact';
-    k            = k+1;
+%     params3      = struct('k0', k0);
+%     [~,xx,~, flopc] = pd_mihs_under_exact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL],[MAXIT MAXIT2], params3);
+%     err(:,k)     = err_x0(xx);
+%     flop(:,k)    = flopc;
+%     names{k}     = 'PD MIHS-exact';
+%     k            = k+1;
     
     %% PD M IHS inexact
-    params4      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', 100);
-    [~,xx,~, flopc] = pd_mihs_under_inexact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
-    err(:,k)     = err_x0(xx);
-    flop(:,k)    = flopc;
-    names{k}     = 'PD MIHS-inexact';
-    k            = k+1;
+%     params4      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', 100);
+%     [~,xx,~, flopc] = pd_mihs_under_inexact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
+%     err(:,k)     = err_x0(xx);
+%     flop(:,k)    = flopc;
+%     names{k}     = 'PD MIHS-inexact';
+%     k            = k+1;
     
     %% Acc IPDS exact
-    params5      = struct('k0', k0);
-    [~,xx,~, flopc] = acc_ipds_exact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL'],[MAXIT MAXIT2], params5);
-    err(:,k)     = err_x0(xx);
-    flop(:,k)    = flopc;
-    names{k}     = 'Acc. IPDS-exact';
-    k            = k+1; 
+%     params5      = struct('k0', k0);
+%     [~,xx,~, flopc] = acc_ipds_exact_iko(A,b,lam,[3*k0, 6*k0],x1,[TOL TOL'],[MAXIT MAXIT2], params5);
+%     err(:,k)     = err_x0(xx);
+%     flop(:,k)    = flopc;
+%     names{k}     = 'Acc. IPDS-exact';
+%     k            = k+1; 
     
     %% mc
     err_mc(:,:,mc)  = err;
