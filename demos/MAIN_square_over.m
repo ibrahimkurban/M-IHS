@@ -3,9 +3,9 @@ close all
 clc
 
 %%
-n       = 2^14;
-d       = 2^12;
-m       = 2*d;
+n       = 5e4;
+d       = 3e4;
+%m       = 2*d;
 
 
 TOL     = 0;
