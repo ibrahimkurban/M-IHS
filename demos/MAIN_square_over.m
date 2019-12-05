@@ -17,7 +17,7 @@ MAXIT2  = 25;
 PROFILE = 5;%5,3
 MAX     = 1;
 KAPPA   = 8;%7,2
-LEVEL   = 0.05;
+LEVEL   = 0.1;
 MC      = 1;
 
 %% GENERATE DATA
