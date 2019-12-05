@@ -19,7 +19,7 @@ for i=1:2, xxOR{i} = zeros(d,N); end
 % [U, sig, V]   = dsvd(A);
 
 for i = 1:N
-    [xxOR{1}(:,i), parOR(1, i)]   = LS_truncated(U,sig,V, b(:,i), x1, x0 );
+    [xxOR{1}(:,i), parOR(1, i)]   = LS_truncated_iko(U,sig,V, b(:,i), x1, x0 );
 end
 errOR{1} = @(xx, dev)(sqrt(sum((xxOR{1}(:,dev) - xx).^2, 1))/norm(xxOR{1}(:,dev)));
 for i =1:N
