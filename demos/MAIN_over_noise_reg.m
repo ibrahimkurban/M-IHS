@@ -3,15 +3,15 @@ close all
 clc
 
 %%
-n       = 2^15;
+n       = 2^16;
 d       = 1000;
 m       = 2*d;
 
 
 TOL     = 0;
 MAXIT   = 20;
-TOL2    = 1e-10;
-MAXIT2  = 35;
+% TOL2    = 1e-10;
+% MAXIT2  = 35;
 
 
 PROFILE = 5;%5,3
@@ -46,7 +46,7 @@ fprintf('Oracle reg. par: %1.2e\n', par0);
 
 lam = par0;
 %%
-N_met   = 9;
+N_met   = 7;
 err_mc  = zeros(MAXIT,N_met,MC);
 flop_mc = zeros(MAXIT,N_met,MC);
 names   = cell(N_met,1);
@@ -107,20 +107,20 @@ for mc = 1:MC
     k            = k+1;
     
     %% PD M IHS exact
-    params3      = struct('k0', k0);
-    [~,xx,~, flopc] = pd_mihs_over_exact_iko(A,b,lam,[3*k0, 3*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params3);
-    err(:,k)     = err_x0(xx);
-    flop(:,k)    = flopc;
-    names{k}     = 'PD-MIHS-exact';
-    k            = k+1;
+%     params3      = struct('k0', k0);
+%     [~,xx,~, flopc] = pd_mihs_over_exact_iko(A,b,lam,[3*k0, 3*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params3);
+%     err(:,k)     = err_x0(xx);
+%     flop(:,k)    = flopc;
+%     names{k}     = 'PD-MIHS-exact';
+%     k            = k+1;
     
     %% PD M IHS inexact
-    params4      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', k0);
-    [~,xx,~, flopc] = pd_mihs_over_inexact_iko(A,b,lam,[3*k0, 3*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
-    err(:,k)     = err_x0(xx);
-    flop(:,k)    = flopc;
-    names{k}     = 'PD-MIHS-inexact';
-    k            = k+1;
+%     params4      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', k0);
+%     [~,xx,~, flopc] = pd_mihs_over_inexact_iko(A,b,lam,[3*k0, 3*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
+%     err(:,k)     = err_x0(xx);
+%     flop(:,k)    = flopc;
+%     names{k}     = 'PD-MIHS-inexact';
+%     k            = k+1;
     
     %% mc
     err_mc(:,:,mc)  = err;
