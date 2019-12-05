@@ -3,15 +3,15 @@ close all
 clc
 
 %%
-n       = 2^12;
-d       = 2^14;
+n       = 2e5;
+d       = 5e5;
 m       = 2*n;
 
 
 TOL     = 0;
 MAXIT   = 20;
 
-MAXIT2  = 55;
+MAXIT2  = 25;
 TOL2     = 1e-10;
 
 PROFILE = 5;%5,3
@@ -87,7 +87,7 @@ for mc = 1:MC
 %     
     %% M-IHS exact
     params1      = struct('k0', k0);
-    [~,xx,~, flopc] = dual_mihs_exact_iko(A,b,lam,m,x1,TOL,MAXIT, params1);
+    [~,xx,~, flopc] = dual_mihs_exact_iko(A,b,lam,2*k0,x1,TOL,MAXIT, params1);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'Dual M-IHS-exact';
@@ -103,7 +103,7 @@ for mc = 1:MC
     
     %% PD M IHS exact
     params3      = struct('k0', k0);
-    [~,xx,~, flopc] = pd_mihs_under_exact_iko(A,b,lam,[4*k0, 4*k0],x1,[TOL TOL],[MAXIT MAXIT2], params3);
+    [~,xx,~, flopc] = pd_mihs_under_exact_iko(A,b,lam,[2*k0, 2*k0],x1,[TOL TOL],[MAXIT MAXIT2], params3);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'PD MIHS-exact';
@@ -111,7 +111,7 @@ for mc = 1:MC
     
     %% PD M IHS inexact
     params4      = struct('k0', k0, 'subtol', 1e-1, 'submaxit', 100);
-    [~,xx,~, flopc] = pd_mihs_under_inexact_iko(A,b,lam,[4*k0, 4*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
+    [~,xx,~, flopc] = pd_mihs_under_inexact_iko(A,b,lam,[2*k0, 2*k0],x1,[TOL TOL2],[MAXIT MAXIT2], params4);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'PD MIHS-inexact';
@@ -119,7 +119,7 @@ for mc = 1:MC
     
     %% Acc IPDS exact
     params5      = struct('k0', k0);
-    [~,xx,~, flopc] = acc_ipds_exact_iko(A,b,lam,[4*k0, 4*k0],x1,[TOL TOL'],[MAXIT MAXIT2], params5);
+    [~,xx,~, flopc] = acc_ipds_exact_iko(A,b,lam,[2*k0, 2*k0],x1,[TOL TOL'],[MAXIT MAXIT2], params5);
     err(:,k)     = err_x0(xx);
     flop(:,k)    = flopc;
     names{k}     = 'Acc. IPDS-exact';
