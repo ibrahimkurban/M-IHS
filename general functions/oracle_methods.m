@@ -23,7 +23,7 @@ for i = 1:N
 end
 errOR{1} = @(xx, dev)(sqrt(sum((xxOR{1}(:,dev) - xx).^2, 1))/norm(xxOR{1}(:,dev)));
 for i =1:N
-    [xxOR{2}(:,i), parOR(2, i)]   = LS_ridge(U,sig,V, b(:,i), x1, @(x)errOR{1}(x, i));
+    [xxOR{2}(:,i), parOR(2, i)]   = LS_ridge_iko(U,sig,V, b(:,i), x1, @(x)errOR{1}(x, i));
     err_rid(i) = errOR{1}(xxOR{2}(:,i), i);
 end
 errOR{2} = @(xx, dev)(sqrt(sum((xxOR{2}(:,dev) - xx).^2, 1))/norm(xxOR{2}(:,dev)));
