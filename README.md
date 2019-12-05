@@ -1,6 +1,6 @@
 # Momentum Iterative Hessian Sketch (M-IHS)
 This repository includes the MATLAB implementation of the M-IHS variants. The details of the solvers can be found in the following manuscript:
-  * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "Regularized M-IHS for Large Scale Linear System of Equations" SIAM Journal on    Matrix Analysis and Applications (On the way of submission)
+  * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "Regularized M-IHS for Large Scale Linear System of Equations" SIAM Journal on    Matrix Analysis and Applications (submitted to the SIAM Journal on Scientific Computing)
   * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "Iterative Hessian Sketch with Momentum." ICASSP 2019-2019 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2019.
 
 ## Sovlers that are included in the packets
