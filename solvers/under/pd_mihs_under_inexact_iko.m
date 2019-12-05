@@ -66,7 +66,7 @@ alpha   = (1-r).^2;
 beta    = r;
 
 %% initialization
-x       = x1;
+x       = x1*0;
 nu      = zeros(n,1);
 nup     = nu;
 z       = zeros(m(1),1);
