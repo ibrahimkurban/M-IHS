@@ -9,6 +9,13 @@ function [x,xx,time, flopc] = blendenpik_v2_iko(A,b,lam,m,x1,tol,maxit,params)
 % params.SA = sketch matrix otherwise it is ROS with DCT
 %
 %
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
+%
 % This is dual version,  i.e. udnerdetermined blendenpik
 %
 %   Ibrahim Kurban Ozaslan
@@ -16,18 +23,24 @@ function [x,xx,time, flopc] = blendenpik_v2_iko(A,b,lam,m,x1,tol,maxit,params)
 %   MSc in EEE Dept. 
 %   November 2019
 %
+
+time    = zeros(maxit+3,1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SAt, rp_time, f_rp] = generate_SA_blendenpik(A',m, true);
 else
     if(~isfield(params, 'SA'))
         [SAt, rp_time, f_rp] = generate_SA_blendenpik(A',m, true);
+     else
+        rp_time = 0;
+        f_rp    = 0;
     end
 end
-tic
+time(1) = rp_time;
 
 %% QR decomposition
 [n,d]   = size(A);
+tic;
 if(lam == 0)
    [~, R] = qr(SAt,0);
    f_qr   = ceil(2*m*n^2-2/3*n^3);
@@ -35,23 +48,21 @@ else
    [~, R] = qr([SAt/sqrt(lam); eye(n)],0);
    f_qr   = ceil(2*(m+n)*n^2-2/3*n^3);
 end
-
+time(2) = toc;
 %% pre condition
 if(lam== 0)
     RA = R'\A;
 else
-    RA = R'\[A/sqrt(lam), speye(n)];
+    RA = R'\[A/sqrt(lam), eye(n)];
 end
 Rb  = R'\b;
-
+time(2) = toc;
 %% LSQR solver
-[x, iter, xx, f_lsqr] = lsqr_iko(RA,Rb,0,tol,maxit);
+[x, iter, xx, f_lsqr, time(4:end)] = lsqr_iko(RA,Rb,0,tol,maxit);
 
 x   = x(1:d)/sqrt(lam);
 xx  = xx(1:d,:)/sqrt(lam);
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
 flopc   = f_rp + f_lsqr + f_qr + [1:iter]*(2*n^2 + 14*n);  %last term for R\

@@ -7,11 +7,19 @@ function [x,xx,time,flopc,params] = dual_mihs_inexact_iko(A,b,lam,m,x1,tol,maxit
 %   params.submaxit sets number max iteration for subsolver (25)
 %   params.subtol   sets tolerance for subsolver (relative residual)(1e-2)
 %
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
 %   Ibrahim Kurban Ozaslan
-%   Bilkent University 
-%   MSc in EEE Dept. 
+%   Bilkent University
+%   MSc in EEE Dept.
 %   November 2019
 %
+time    = zeros(maxit+3,1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SAt, rp_time,f_rp]   = generate_SA_mihs(A',m, false);
@@ -20,9 +28,12 @@ else
     noparam = false;
     if(~isfield(params, 'SAt'))
         [SAt, rp_time,f_rp] = generate_SA_mihs(A',m, false);
+    else
+        rp_time = 0;
+        f_rp    = 0;
     end
 end
-
+time(1) = rp_time;
 %% inexact tolerance
 if(noparam||~isfield(params, 'subtol'))
     params.subtol = 1e-2;
@@ -39,13 +50,14 @@ in_iter = zeros(maxit,1);
 
 %% effective rank
 if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr]   = eff_rank_solver(SAt, SAt, lam, 2, 1e-1, 50);
+    [k0, ~, f_tr, tr_time] = hutchinson_estimator_iko(SAt, lam,2, params.subtol, params.submaxit);
     params.k0       = k0;
 else
     k0      = params.k0;
     f_tr    = 0;
+    tr_time = 0;
 end
-tic;
+time(3) = tr_time;
 %% momentum weights
 r       = k0/m;
 
@@ -65,7 +77,7 @@ nup     = zeros(size(nu));
 dnu     = nup;
 k = 0;
 while(k < 2 || (norm(nu - nup)/norm(nup) >= tol && k < maxit))
-    k           = k+1;
+    k           = k+1; tic;
     %grad
     grad        = b - A*(A'*nu) - lam*nu;
     
@@ -80,12 +92,11 @@ while(k < 2 || (norm(nu - nup)/norm(nup) >= tol && k < maxit))
     %store and count flop
     xx(:,k)     = A'*nu;
     flopc(k)    = f_dx(end) + 4*n*d + 8*n;
+    time(k+3)   = toc;
 end
 xx  = xx(:,1:k);
 x   = xx(:,end);
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
 f_iter = 2*(n^2) + 4*n*d + 22*n;

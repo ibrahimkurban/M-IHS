@@ -9,13 +9,18 @@ function [x,xx,time,flopc] = acc_ipds_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 %   m,tol, maxit are all two length array, e.g. m = [m1,m2]
 %
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
 %
 %   Ibrahim Kurban Ozaslan
 %   Bilkent University 
 %   MSc in EEE Dept. 
 %   November 2019
 %
-
+time    = zeros(maxit+3,1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SAt, rp_time1,f_rp1]    = generate_SA_mihs(A',m(1), false);
@@ -28,19 +33,22 @@ else
         [WASt, rp_time2,f_rp2] = generate_SA_mihs(SAt',m(2), false);
     end
 end
-tic;
+time(1)    = rp_time1+rp_time2;
 
 %% QR decomposition
 [n,d]   = size(A);
+tic;
 if(lam == 0)
     [~, R] = qr(WASt,0);
     f_qr   = ceil(2*m(2)*m(1)^2-2/3*m(1)^3);
 else
-    [~, R] = qr([WASt;sqrt(lam)*speye(m(1))],0);
+    [~, R] = qr([WASt;sqrt(lam)*eye(m(1))],0);
     f_qr   = ceil(2*(m(2)+m(1))*m(1)^2-2/3*m(1)^3);
 end
-
+time(2) = toc;
+time(3) = 0;
 %% initizlize
+tic;
 xx      = zeros(d,maxit(1));
 in_iter = zeros(1, maxit(1));
 aD      = zeros(n,1);
@@ -104,13 +112,13 @@ while(k < 2 || (norm(alphaD*pD)/norm(aDp) >= tol(1) && k < maxit(1)))
     vD      = A*(A'*pD) + lam*pD;
     
     xx(:,k) = x;
+    time(k+3) = toc;tic;
 end
+toc;
 xx      = xx(:,1:k);
 x       = xx(:,end);
 in_iter = in_iter(1:k);
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time1 + rp_time2;
 
 % flop count
 f_init1 = 8*m(1)*n + 4*n*d + 2*m(1)^2 + 17*m(1) + 6*n;

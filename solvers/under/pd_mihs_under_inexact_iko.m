@@ -16,6 +16,7 @@ function [x,xx,time,flopc,in_iter] = pd_mihs_under_inexact_iko(A,b,lam,m,x1,tol,
 %   MSc in EEE Dept. 
 %   November 2019
 %
+time    = zeros(maxit+3,1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SAt, rp_time1,f_rp1]    = generate_SA_mihs(A',m(1), false);
@@ -35,16 +36,17 @@ else
         f_rp2   = 0;
     end
 end
-
+time(1) = rp_time1+rp_time2;
 %% effective rank
 if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = hutchinson_estimator_iko(WASt, WASt, lam, 2, 1e-1, 100);
+    [k0, ~, f_tr] = hutchinson_estimator_iko(WASt, lam, 2, 1e-1, 100);
     params.k0   = k0;
 else
     k0          = params.k0;
     f_tr        = 0;
+    tr_time     = 0;
 end
-
+time(3)     = tr_time;
 %% inexact tolerance
 if(noparam || ~isfield(params, 'subtol'))
     params.subtol = 1e-2;
@@ -58,7 +60,6 @@ end
 xx      = zeros(d, maxit(1));
 flopc   = zeros(1, maxit(1));
 in_iter = zeros(1, maxit(1));
-tic;
 
 %% momentum
 r       = k0./m;
@@ -74,7 +75,7 @@ zp      = z;
 dz      = z;
 i       = 0;
 while(i < 2 || (norm(nu - nup)/norm(nup) >= tol(1) && i < maxit(1)))
-    i      = i+1;
+    i      = i+1; tic;
     bi     = b - A*x - lam*nu;
     
     %take dual and apply RP
@@ -104,6 +105,7 @@ while(i < 2 || (norm(nu - nup)/norm(nup) >= tol(1) && i < maxit(1)))
     
     x           = A'*nu;
     xx(:,i)     = x;
+    time(i+3)   = toc;
 end
 xx      = xx(:,1:i);
 x       = xx(:,end);

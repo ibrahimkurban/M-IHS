@@ -19,27 +19,34 @@ function [x,xx,time,flopc] = acc_drp_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %   MSc in EEE Dept. 
 %   November 2019
 %
+
+time = zeros(maxit+3, 1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SAt, rp_time,f_rp]   = generate_SA_mihs(A',m, false);
 else
     if(~isfield(params, 'SA'))
         [SAt, rp_time,f_rp] = generate_SA_mihs(A',m, false);
+    else
+        rp_time = 0;
+        f_rp    = 0;
     end
 end
-tic;
+time(1) = rp_time;
 
 %% QR decomposition
 [n,d]   = size(A);
+tic;
 if(lam == 0)
    [~, R] = qr(SAt,0);
    f_qr   = ceil(2*m*n^2-2/3*n^3);
 else
-   [~, R] = qr([SAt;sqrt(lam)*speye(n)],0);
+   [~, R] = qr([SAt;sqrt(lam)*eye(n)],0);
    f_qr   = ceil(2*(m+n)*n^2-2/3*n^3);
 end
-
+time(2) = toc;
 %%
+tic;
 xx      = zeros(d,maxit);
 alpha   = zeros(n,1);
 r       = (-lam)*b;
@@ -64,6 +71,7 @@ while(k < 2 || (norm(dffxp)/norm(xp) >= tol && k < maxit))
     v       = A*(A'*p) + lam*p;
     
     xx(:,k)  = (A'*alpha)/lam;
+    time(k+3) = toc; tic;
 end
 xx      = xx(:,1:k);
 x       = xx(:,end);

@@ -11,11 +11,19 @@ function [x,xx,time,flopc] = lsrn_v2_cheby_iko(A,b,lam,m,x1,tol,maxit,params)
 % flopc is flop count
 % this version uses chebyshev iteration to compute the solution
 %
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
 %   Ibrahim Kurban Ozaslan
 %   Bilkent University 
 %   MSc in EEE Dept. 
 %   November 2019
 %
+time    = zeros(maxit+3,1);
 %% Check Tikhonov
 [n,d] = size(A);
 if(lam ~= 0 )
@@ -29,12 +37,15 @@ if(~exist('params', 'var'))
 else
     if(~isfield(params, 'SA'))
         [SAt, rp_time, f_rp] = generate_SA_lsrn(A',m);
+    else
+        rp_time = 0;
+        f_rp    = 0;
     end
 end
-tic
+time(1) = rp_time;
 
 %% SVD decomposition
-
+tic;
     [~, S, V] = svd(SAt,'econ');
     f_svd     = 2*m*n^2 + 11*n^3;
 
@@ -42,15 +53,13 @@ tic
 M   = V*(S^-1);
 MA  = M'*A;
 Mb  = M'*b;
-
+time(2) = toc;
 %% LSQR Solver
-[x, iter, xx, f_cheby] = chebyshev_iko(MA,Mb,x1,min(n,d)/m,tol,maxit);
+[x, iter, xx, f_cheby, time(4:end)] = chebyshev_iko(MA,Mb,x1,min(n,d)/m,tol,maxit);
 x   = x(1:d-n)/sqrt(lam);
 xx  = xx(1:d-n,:)/sqrt(lam);
 
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
 flopc   = f_rp + f_cheby + f_svd + [1:iter]*(n+2*n^2); % last term due to preco.

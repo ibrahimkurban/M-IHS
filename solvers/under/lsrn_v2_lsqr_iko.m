@@ -9,6 +9,13 @@ function [x,xx,time,flopc] = lsrn_v2_lsqr_iko(A,b,lam,m,x1,tol,maxit,params)
 % params.SA = sketch matrix otherwise it is Gaussian
 % flopc is flop count
 %
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
 % for under determined problems
 %
 %   Ibrahim Kurban Ozaslan
@@ -16,6 +23,7 @@ function [x,xx,time,flopc] = lsrn_v2_lsqr_iko(A,b,lam,m,x1,tol,maxit,params)
 %   MSc in EEE Dept. 
 %   November 2019
 %
+time    = zeros(maxit+3,1);
 %% Check Tikhonov
 [n,d] = size(A);
 if(lam ~= 0 )
@@ -30,10 +38,10 @@ else
         [SAt, rp_time, f_rp] = generate_SA_lsrn(A',m);
     end
 end
-tic
+time(1)  =rp_time;
 
 %% SVD decomposition
-
+tic;
 [~, S, V] = svd(SAt,'econ');
 f_svd     = 2*m*n^2 + 11*n^3;
 
@@ -41,16 +49,14 @@ f_svd     = 2*m*n^2 + 11*n^3;
 M   = V*(S^-1);
 MA  = M'*A;
 Mb  = M'*b;
-
+time(2) = toc;
 %% LSQR Solver
-[x, iter, xx, f_lsqr] = lsqr_iko(MA,Mb,0,tol,maxit);
+[x, iter, xx, f_lsqr, time(4:end)] = lsqr_iko(MA,Mb,0,tol,maxit);
 
 x   = x(1:d-n)/sqrt(lam);
 xx  = xx(1:d-n,:)/sqrt(lam);
 
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
 flopc   = f_rp + f_lsqr + f_svd + [1:iter]*(n+2*n^2);
