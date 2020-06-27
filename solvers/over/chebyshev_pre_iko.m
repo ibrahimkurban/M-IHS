@@ -7,6 +7,13 @@ function [x,xx,time,flopc] = chebyshev_pre_iko(A,b,lam,m,x1,tol,maxit,params)
 %   params.SA sketch amtrix
 %   params.k0 effective rank (reqirement if not known run eff_rank_solver)
 %
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
 %   For details see 
 %   "Barrett, Richard, et al. 
 %   Templates for the solution of linear systems: 
@@ -19,6 +26,7 @@ function [x,xx,time,flopc] = chebyshev_pre_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 
 [n,d]   = size(A);
+time    = zeros(maxit+3,1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
@@ -35,16 +43,18 @@ else
         params.k0 = d;
     end
 end
-tic;
+time(1) = rp_time;
 %% QR decomposition
+tic;
 if(lam == 0)
     [~, R] = qr(SA,0);
     f_qr   = ceil(2*m*d^2-2/3*d^3);
 else
-    [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
+    [~, R] = qr([SA;sqrt(lam)*eye(d)],0);
     f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
 end
-
+time(2) = toc;
+time(3) = 0;
 %% momentum weights
 r       = params.k0/m;
 
@@ -61,7 +71,7 @@ x       = x1;
 xp      = x1*0;
 i       = 0;
 while(i < 2 || (norm(xp - x)/norm(xp) >= tol && i < maxit))
-    i = i+1;
+    i = i+1; tic;
     %gradient
     grad    = A'*(b-A*x) - lam*x;
     
@@ -82,11 +92,10 @@ while(i < 2 || (norm(xp - x)/norm(xp) >= tol && i < maxit))
     x = x + alpha*p;
     
     xx(:,i) = x;
+    time(i+3) = toc;
 end
 
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
 f_iter  = 2*(d^2) + 4*n*d + n + 18*d;

@@ -9,6 +9,13 @@ function [x,xx,time,flopc] = lsrn_cheby_iko(A,b,lam,m,x1,tol,maxit,params)
 % params.SA = sketch matrix otherwise it is Gaussian
 % flopc is flop count
 %
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
 %   Ibrahim Kurban Ozaslan
 %   Bilkent University 
 %   MSc in EEE Dept. 
@@ -16,6 +23,7 @@ function [x,xx,time,flopc] = lsrn_cheby_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 %% Check Tikhonov
 [n,d] = size(A);
+time  = zeros(maxit+3,1);
 if(lam ~= 0 )
     A = [A;sqrt(lam)*eye(d)];
     b = [b; zeros(d,1)];
@@ -37,25 +45,27 @@ else
         params.k0 = d;
     end
 end
-tic
+time(1) = rp_time;
 
 %% SVD decomposition
-
+tic;
 [~, S, V] = svd(SA,'econ');
 f_svd     = 2*m*d^2 + 11*d^3;
 
 %preconditioner
 N   = V*(S^-1);
 AN  = A*N;
-
+time(2) = toc;
+time(3) = 0;
 %% Cheybyshev Solver
-[x, iter, xx, f_cheby] = chebyshev_iko(AN,b,x1,d/m,tol,maxit);
+[x, iter, xx, f_cheby, time(4:end)] = chebyshev_iko(AN,b,x1,d/m,tol,maxit);
+tic;
 x   = N*x;
 xx  = N*xx;
 
 %% complexity (flop count refer to lightspeed malab packet)
 %timing
-time    = toc+rp_time;
+time(end) = time(end) + toc;
 
 % flop count
 flopc   = f_rp + f_cheby + f_svd + [1:iter]*(d+2*d^2);

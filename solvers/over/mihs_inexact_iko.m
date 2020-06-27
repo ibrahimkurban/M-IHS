@@ -1,9 +1,16 @@
-function [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
+function [x,xx,time,flopc,in_iter,params,flopd] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
 %%
 %
 % [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 %   params.SA sketch amtrix
+%
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
 %
 %           params.submaxit sets number max iteration for subsolver (k0)
 %           params.subtol   sets tolerance for subsolver (relative
@@ -14,6 +21,8 @@ function [x,xx,time,flopc,in_iter,params] = mihs_inexact_iko(A,b,lam,m,x1,tol,ma
 %   MSc in EEE Dept. 
 %   November 2019
 %
+
+time = zeros(maxit+3,1);
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
     [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
@@ -28,15 +37,17 @@ else
     end
     noparam     = false;
 end
+time(1)     = rp_time;
 %% effective rank
 if(noparam || ~isfield(params, 'k0'))
-    [k0, ~, f_tr] = hutchinson_estimator_iko(SA, SA, lam);
+    [k0, ~, f_tr, tr_time] = hutchinson_estimator_iko(SA, lam,2, params.subtol, params.submaxit);
     params.k0 = k0;
 else
     k0      = params.k0;
     f_tr    = 0;
+    tr_time = 0;
 end
-
+time(3) = tr_time;
 %% inexact tolerance
 if(noparam ||~isfield(params, 'subtol'))
     params.subtol = 1e-2;
@@ -52,8 +63,6 @@ xx      = zeros(d, maxit);
 flopc   = zeros(maxit,1);
 in_iter = zeros(maxit,1);
 
-
-tic;
 %% momentum weights
 r       = k0/m;
 alpha   = (1-r)^2;
@@ -65,7 +74,7 @@ dx      = xp;
 x       = x1;
 k       = 0;
 while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
-    k       = k+1;
+    k       = k+1; tic;
     grad    = A'*(b-A*x) - lam*x;
     
     %solve subproblem
@@ -79,16 +88,16 @@ while(k < 2 || (norm(x - xp)/norm(xp) >= tol && k < maxit))
     %store and count flop
     xx(:,k) = x;
     flopc(k)= f_dx(end) + 4*n*d + n + 7*d;
+    time(k+3)= toc; 
 end
 xx      = xx(:,1:k);
 flopc   = flopc(1:k);
 in_iter = in_iter(1:k);
 
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
+flopd = [f_rp; 0; f_tr; flopc];
 flopc   = cumsum(flopc) + f_rp + f_tr;
 
 end

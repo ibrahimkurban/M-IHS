@@ -1,12 +1,19 @@
-function [x,xx,time, flopc] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
+function [x,xx,time,flopc, flopd] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
 %%BLENDENPIK_IKO imlementation of the algorithm in the paper:
 % Avron, Haim, Petar Maymounkov, and Sivan Toledo. 
 % "Blendenpik: Supercharging LAPACK's least-squares solver." 
 % SIAM Journal on Scientific Computing 32.3 (2010): 1217-1236.
 %
-% [x,xx,time, flopc] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
+% [x,xx,time, flopc, time] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 % params.SA = sketch matrix otherwise it uses ROS with DCT
+%
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
 %
 %
 %   Ibrahim Kurban Ozaslan
@@ -17,20 +24,22 @@ function [x,xx,time, flopc] = blendenpik_iko(A,b,lam,m,x1,tol,maxit,params)
 
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time, f_rp] = generate_SA_blendenpik(A,m, true);
+    [SA, rp_time, f_rp] = generate_SA_blendenpik(A,m, false);
 else
-        if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
+     if(~isfield(params, 'SA'))
+        [SA, rp_time,f_rp] = generate_SA_blendenpik(A,m, false);
     else
         SA      = params.SA;
         rp_time = 0;
         f_rp    = 0;
     end
 end
-tic
 
 %% QR decomposition
 [~,d]   = size(A);
+time    = zeros(maxit+3,1);
+time(1) = rp_time;
+tic;
 if(lam == 0)
    [~, R] = qr(SA,0);
    f_qr   = ceil(2*m*d^2-2/3*d^3);
@@ -38,20 +47,19 @@ else
    [~, R] = qr([SA;sqrt(lam)*eye(d)],0);
    f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
 end
-
+time(2) = toc;
+time(3) = 0; %sd estimation
 %% LSQR Solver
 if(lam == 0)
-    [x, ~, xx, f_lsqr] = lsqr_pre_iko(A,b,0,R,tol,maxit);
+    [x, ~, xx, f_lsqr, time(4:end)] = lsqr_pre_iko(A,b,0,R,tol,maxit);
 else
-    [x, ~, xx, f_lsqr] = lsqr_pre_iko([A; sqrt(lam)*speye(d)],[b; zeros(d,1)],0,R,tol,maxit);
+    [x, ~, xx, f_lsqr, time(4:end)] = lsqr_pre_iko([A; sqrt(lam)*eye(d)],[b; zeros(d,1)],0,R,tol,maxit);
 end
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
 
 % flop count
 flopc   = f_rp + f_lsqr + f_qr; 
-
+flopd   = [f_rp; f_qr; 0; diff([0; f_lsqr(:)])];
 end
 
 

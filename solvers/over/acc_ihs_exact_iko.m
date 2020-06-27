@@ -8,6 +8,13 @@ function [x,xx,time,flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 % [x,xx,time,flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
+%
+%   time(1) = rp time
+%   time(2) = SA decomposition time
+%   time(3) = trace estiamtion time
+%   time(i) = time of ith iter
+%   use cumsum
+%
 % there are some mistakes in the algorithm presented in the paper
 % this corrected version, I have tried to use same notation
 %
@@ -21,28 +28,30 @@ function [x,xx,time,flopc] = acc_ihs_exact_iko(A,b,lam,m,x1,tol,maxit,params)
 %
 %% generate sketch matrix or not
 if(~exist('params', 'var'))
-    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, true);
+    [SA, rp_time,f_rp]   = generate_SA_mihs(A,m, false);
 else
     if(~isfield(params, 'SA'))
-        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, true);
+        [SA, rp_time,f_rp] = generate_SA_mihs(A,m, false);
     end
 end
-tic;
-
 %% data
 [n,d]   = size(A);
 xx      = zeros(d, maxit);
-
+time    = zeros(maxit+3,1);
+time(1) = rp_time;
 %% QR decomposition
+tic;
 if(lam == 0)
    [~, R] = qr(SA,0);
    f_qr   = ceil(2*m*d^2-2/3*d^3);
 else
-   [~, R] = qr([SA;sqrt(lam)*speye(d)],0);
+   [~, R] = qr([SA;sqrt(lam)*eye(d)],0);
    f_qr   = ceil(2*(m+d)*d^2-2/3*d^3);
 end
-
+time(2) = toc;
+time(3) = 0; %sd estimation
 %%
+tic;
 w       = x1;
 wp      = x1*0;
 r       = - (A'*b);
@@ -63,18 +72,15 @@ while(k < 2 || (norm(w - wp)/norm(wp) >= tol && k < maxit))
     v       = A'*(A*p) + lam*p;
     
     xx(:,k) = w;
+    time(k+3) = toc; tic;
 end
 xx      = xx(:,1:k);
 x       = xx(:,end);
 %% complexity (flop count refer to lightspeed malab packet)
-%timing
-time    = toc+rp_time;
-
 % flop count
 f_init = 2*d^2 + 6*n*d + 17*d;
 f_iter = 2*(d^2) + 4*n*d + 16 + 31*d;
 flopc  = [1:k]*f_iter + f_init + f_rp + f_qr;   
-
 
 end
 
