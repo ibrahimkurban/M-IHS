@@ -3,7 +3,7 @@ This repository includes the MATLAB implementation of the M-IHS variants. The de
   * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "**Regularized M-IHS for Large Scale Linear System of Equations**"
   * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "**Iterative Hessian Sketch with Momentum**." ICASSP 2019-2019 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2019.
 
-## Solvers that are included in the packets
+## Solvers that are included in the packet
   * M-IHS (exact and inexact versions)
   * Dual M-IHS (exact and inexact versions)
   * Primal Dual M-IHS (over and under-determined versions)(exact and inexact versions)
