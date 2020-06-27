@@ -1,4 +1,4 @@
-function [x, i, xx, flopc] = lsqr_pre_iko(A,b,lam,R,tol,maxit)
+function [x, i, xx, flopc, time] = lsqr_pre_iko(A,b,lam,R,tol,maxit)
 %%LSQR_IKO is my implementation of LSQR in which the QR step
 % is used. the method uses lower bidiagonalization instead
 % of upper bidiagonalization algorithm
@@ -15,10 +15,11 @@ function [x, i, xx, flopc] = lsqr_pre_iko(A,b,lam,R,tol,maxit)
 [n,d]           = size(A);
 if(nargout > 2)
     xx          = zeros(d, maxit);
+    time        = zeros(maxit,1);
 end
 
 %% bidiagonalization init.
-
+tic;
 beta1       = norm(b);          
 phibar      = beta1;                                         
 u           = b/phibar;         
@@ -69,11 +70,13 @@ while(i < 2 || (i < maxit && relres > tol))
     %% store
     if(nargout > 2)
         xx(:,i)     = x;
+        time(i)     = toc;tic;
     end
 end
 %back preconditioning
 x = R\x;
 if(nargout > 2)
+    time(i) = time(i) + toc;
     xx = R\xx;
 end
 

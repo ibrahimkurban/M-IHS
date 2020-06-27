@@ -1,4 +1,4 @@
-function [x, i, xx, flopc] = lsqr_iko(A,b,lam,tol,maxit)
+function [x, i, xx, flopc, time] = lsqr_iko(A,b,lam,tol,maxit)
 %%LSQR_IKO is my implementation of LSQR in which the QR step
 % is used. the method uses lower bidiagonalization instead
 % of upper bidiagonalization algorithm
@@ -15,6 +15,7 @@ function [x, i, xx, flopc] = lsqr_iko(A,b,lam,tol,maxit)
 [n,d]   = size(A);
 if(nargout > 1)
     xx          = zeros(d, maxit);
+    time        = zeros(maxit,1); tic;
 end
 %% bidiagonalization init.
 beta1       = norm(b);
@@ -67,9 +68,9 @@ while(i < 2 || (i < maxit && relres > tol))
     %% store
     if(nargout > 1)
         xx(:,i)     = x;
+        time(i)     = toc;tic;
     end
 end
-
 %% flop count refer to lightspeed malab packet
 if(nargout > 3)
     f_iter = 4*n*d + 5*n + 8*d + 70;

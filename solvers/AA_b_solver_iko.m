@@ -50,7 +50,7 @@ phi         = theta1/rhobar;
 x           = phi*w;% + x1;
 
 k           = 1;
-while(k == 1 || (k < maxit && tol < tol_prev_it))
+while(k == 1 || (k <= maxit && tol < tol_prev_it))
     k       = k+1;
     
     v       = A'*p - rho*v;
