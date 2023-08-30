@@ -1,7 +1,7 @@
 # Momentum Iterative Hessian Sketch (M-IHS)
 This repository includes the MATLAB implementation of the M-IHS variants. The details of the solvers can be found in the following manuscript:
-  * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "**M-IHS: An Accelerated Randomized Preconditioning Method Avoiding Costly Matrix Decompositions**"
-  * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "**Iterative Hessian Sketch with Momentum**." ICASSP 2019-2019 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2019.
+  * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "**M-IHS: An Accelerated Randomized Preconditioning Method Avoiding Costly Matrix Decompositions**". Linear Algebra and Its Applications. August, 2023.
+  * Ozaslan, Ibrahim Kurban, Mert Pilanci, and Orhan Arikan. "**Iterative Hessian Sketch with Momentum**." IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2019.
 
 ## Solvers that are included in the packet
   * M-IHS (exact and inexact versions)
